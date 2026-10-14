@@ -1,0 +1,9 @@
+{
+  "name": "macos",
+  "version": "1.0.0",
+  "description": "macOS disk cleanup, performance triage, and work-shift calendar logging.",
+  "author": { "name": "Trevor Hecht", "url": "https://github.com/trevorwhecht" },
+  "homepage": "https://github.com/trevorwhecht/trevorhecht-skills",
+  "license": "MIT",
+  "keywords": ["macos", "cleanup", "disk", "calendar"]
+}

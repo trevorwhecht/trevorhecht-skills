@@ -1,0 +1,9 @@
+{
+  "name": "global",
+  "version": "1.0.0",
+  "description": "Stack-agnostic workflow skills and the /trevskills-commitpush and /trevskills-migrate safety commands.",
+  "author": { "name": "Trevor Hecht", "url": "https://github.com/trevorwhecht" },
+  "homepage": "https://github.com/trevorwhecht/trevorhecht-skills",
+  "license": "MIT",
+  "keywords": ["workflow", "automation", "git", "prisma", "todo"]
+}

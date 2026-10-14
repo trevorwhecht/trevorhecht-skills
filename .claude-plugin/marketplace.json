@@ -1,0 +1,29 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "trevorhecht-skills",
+  "description": "Claude Code skills and commands by Trevor Hecht. Opinionated workflow automation for Next.js, Prisma, and macOS.",
+  "owner": {
+    "name": "Trevor Hecht",
+    "url": "https://github.com/trevorwhecht"
+  },
+  "plugins": [
+    {
+      "name": "global",
+      "source": "./global",
+      "description": "Stack-agnostic workflow: trevskills-autopilot (end-to-end builds), backlog (capture ideas), trevskills-todo-report (ranked TODO scan), plus the /trevskills-commitpush and /trevskills-migrate safety commands.",
+      "category": "productivity"
+    },
+    {
+      "name": "nextjs",
+      "source": "./nextjs",
+      "description": "Next.js work: trevskills-nextjs-ui (shadcn/Tailwind component, layout, and mobile rules) and trevskills-twilio-email-setup (Twilio email/SMS wiring and 400-error debugging).",
+      "category": "development"
+    },
+    {
+      "name": "macos",
+      "source": "./macos",
+      "description": "macOS utilities: trevskills-mac-cleanup (disk space, System Data, runaway processes, adware checks) and trevskills-timecard (log work shifts to Apple Calendar).",
+      "category": "productivity"
+    }
+  ]
+}
