@@ -43,6 +43,7 @@ cp -R macos/skills/*   ~/.claude/skills/
 # slash commands
 mkdir -p ~/.claude/commands
 cp global/commands/*.md ~/.claude/commands/
+cp nextjs/commands/*.md ~/.claude/commands/
 ```
 
 Restart Claude Code afterward.
@@ -58,7 +59,7 @@ Restart Claude Code afterward.
 | **trevskills-autopilot** | Runs a full build end-to-end from one invocation: clarify → spec → plan → execute → review → report, with no approval stops in between. **Requires superpowers** ([setup below](#superpowers-setup)). |
 | **backlog** | Capture one-line ideas into the project's `BACKLOG.md` and read them back. Works in any repo, any language. |
 | **trevskills-todo-report** | Scans the codebase for `TODO[priority]` comments and returns them ranked 1–10. Pairs with the TODO format in `rules/performance.md`. |
-| **/trevskills-commitpush** | Reviews every change, runs the production build as a gate, writes a high-level summary commit message, then commits and pushes in one chained command. |
+| **/trevskills-commitpush** | Reviews every change, runs the repo's own build as a gate (or none, if the repo has no build), writes a high-level summary commit message, then commits and pushes. Hands off to a stack-specific variant, like `/trevskills-commitpush-nextjs`, when one matches the repo. |
 | **/trevskills-migrate** | A Prisma migration behind real safety checks: duplicate-column detection, a best-practices pass, SQL generated and reviewed before it's applied, a data-loss scan with live row counts, an auto-generated rollback script, then dev → gate → production. |
 
 ### `nextjs`
@@ -67,6 +68,7 @@ Restart Claude Code afterward.
 |---|---|
 | **trevskills-nextjs-ui** | Component selection, modal patterns, styling rules, layout, tables, accessibility, and mobile responsiveness for Next.js + shadcn/ui + Tailwind. The largest skill here. |
 | **trevskills-twilio-email-setup** | Twilio email/SMS wiring for Next.js: env vars, domain authentication, correct request shapes, and the common 400 errors with their causes. |
+| **/trevskills-commitpush-nextjs** | The Next.js variant of `/trevskills-commitpush`: same flow, with `npm run build` (the Vercel build) as a required gate. Needs the `global` plugin. |
 
 ### `macos`
 

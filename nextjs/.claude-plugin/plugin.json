@@ -1,9 +1,9 @@
 {
   "name": "nextjs",
   "version": "1.0.0",
-  "description": "Next.js and shadcn/Tailwind UI rules, plus Twilio email and SMS setup.",
+  "description": "Next.js and shadcn/Tailwind UI rules, Twilio email and SMS setup, and /trevskills-commitpush-nextjs (commit and push behind the Vercel build).",
   "author": { "name": "Trevor Hecht", "url": "https://github.com/trevorwhecht" },
   "homepage": "https://github.com/trevorwhecht/trevorhecht-skills",
   "license": "MIT",
-  "keywords": ["nextjs", "react", "shadcn", "tailwind", "twilio"]
+  "keywords": ["nextjs", "react", "shadcn", "tailwind", "twilio", "git"]
 }
