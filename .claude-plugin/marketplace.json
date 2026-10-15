@@ -10,13 +10,13 @@
     {
       "name": "global",
       "source": "./global",
-      "description": "Stack-agnostic workflow: trevskills-autopilot (end-to-end builds), backlog (capture ideas), trevskills-todo-report (ranked TODO scan), plus the /trevskills-commitpush and /trevskills-migrate safety commands.",
+      "description": "Stack-agnostic workflow: trevskills-autopilot (end-to-end builds), backlog (capture ideas), trevskills-todo-report (ranked TODO scan), plus the /trevskills-commitpush (uses the repo's own build, or none) and /trevskills-migrate safety commands.",
       "category": "productivity"
     },
     {
       "name": "nextjs",
       "source": "./nextjs",
-      "description": "Next.js work: trevskills-nextjs-ui (shadcn/Tailwind component, layout, and mobile rules) and trevskills-twilio-email-setup (Twilio email/SMS wiring and 400-error debugging).",
+      "description": "Next.js work: trevskills-nextjs-ui (shadcn/Tailwind component, layout, and mobile rules), trevskills-twilio-email-setup (Twilio email/SMS wiring and 400-error debugging), and /trevskills-commitpush-nextjs (commit and push with the Vercel build as a gate).",
       "category": "development"
     },
     {
