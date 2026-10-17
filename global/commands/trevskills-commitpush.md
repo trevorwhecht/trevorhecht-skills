@@ -159,7 +159,7 @@ gh pr view "$BRANCH" --json number,url,state,isDraft
 ```
 
 - Exits non-zero / "no pull requests found" → no PR yet, create one (below).
-- Returns a PR with `"state": "OPEN"` → reuse it. Your new commit is already on it because you pushed the branch. Skip to 5B.5.
+- Returns a PR with `"state": "OPEN"` → reuse it. Your new commit is already on it because you pushed the branch. If it is not a draft (`"isDraft": false`), convert it back to one first: `gh pr edit "$BRANCH" --draft`. Skip to 5B.5.
 - Returns a PR with `"state": "MERGED"` or `"CLOSED"` → STOP and report. Someone else has moved this branch and you need the repo owner to say what happens next.
 
 To create it, write the body to a file first so nothing in the markdown is re-read by the shell:
