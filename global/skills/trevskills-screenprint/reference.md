@@ -686,41 +686,35 @@ Evaluate each press for a job; reject on hard constraints, then rank by estimate
 Sources disagree or the answer is shop-specific. Ask; store answers as config, not constants.
 
 **Equipment inventory**
-1. Exact press models: heads/stations, max print area, frame size, air vs electric. Is the "Brown AP67jr"
-   a Brown ElectraPrint Jr? (No source uses "AP67jr".) Does its flash sit in a head or a flash port between
-   heads (affects §2 math)?
-2. Number of flash units per press; quartz or IR; can two flashes run at once?
-3. Dryer(s): belt width, HEATED chamber length, forced air yes/no, gas/electric, max temp. Which presses feed
-   which dryer?
-4. Compressor CFM/hp/tank; does it limit running two autos at once?
-5. Platens owned: sleeve, pocket, youth, oversize/AOP, hoodie, leg; which press each fits.
+1. Manual press and flash: brand and model (or confirm "no brand"). Manual max print area and frame size.
+2. Flash units: how many per press, quartz or IR, can two run at once? Does the AP-67J flash sit in a head
+   (assumed yes) or in a flash port between heads?
+3. "Black Body 8 ft": BBC Forced Air FA-244 (forced air) or Big Buddy III (infrared)? Belt width and
+   heated chamber length of each dryer if the catalog row is wrong.
+4. Compressor CFM / hp / tank; does it limit running the auto and a flash together?
+5. Platens owned: sleeve, pocket, youth, oversize, hoodie; which press each fits.
 
 **Process choices**
-6. Dark-garment UB on the auto: two UB screens (UB1-flash-UB2), one UB + double stroke, or second revolution?
-   (Ryonet says don't PFP white; forums say PFPF standard.)
-7. Cool-down head after flash: always, never, or fan?
-8. Mesh defaults by ink/job (UB, highlight, top colors, WB, discharge, sim process). Thin-thread used?
-9. Default dwell and dryer temp per ink type (plastisol, low-cure, WB, discharge). Sources range: plastisol
-   25 s–1 min+, WB 45 s–3 min.
-10. Poly policy: grey blocker always? Which low-cure ink? Lower dryer temp setting?
-11. Does the shop print discharge? Pot life they use? Always test-print first?
+6. Mesh defaults by ink and role (UB, highlight, top colours, WB, discharge). 200 or 230 for UB on the auto?
+7. Default dwell and dryer temperature per ink type (plastisol, low-cure, WB, discharge).
+8. Poly / blends: grey blocker always? Which low-cure ink? Lower dryer setting?
+9. Discharge: printed at all? Pot life used? Test print first?
 
 **Time model (calibrate)**
-12. Real PPH per press: 1-color no flash, with flash, multi-color, by print size (left chest vs full front).
-    Published claims (ROQ 1,000) vs forum reality (250–550 incl. setups).
-13. Setup minutes: base + per screen, with/without pin registration; manual vs auto.
-14. Teardown/clean-up minutes per screen; reclaim minutes per screen; screens burned per hour.
-15. Crew per press (solo vs loader+catcher) and how PPH changes with crew.
-16. Ink-change / color-change time between jobs sharing screens.
+10. Manual PPH on black ink with no flash, and on multi-colour jobs with a flash (only the ≈25 PPH
+    flashed figure is known).
+11. Setup minutes: base + per screen, with and without pin registration; manual vs auto.
+12. Teardown and reclaim minutes per screen.
+13. Crew per press (solo vs loader + catcher) and how PPH changes with crew.
+14. Colour-change time between jobs sharing screens.
 
 **Scheduling rules**
-17. Manual vs auto break-even quantity (Lawson says 72; sources range 50–300).
-18. Max colors they'll run on each press; will they run 2 revolutions?
-19. Mixed ink on one dryer: allowed? (One belt speed per dryer.)
-20. Garment-staging / dryer-bottleneck behavior: slow the press, or queue garments?
+15. Max colours the shop will run on each press; will it program a second revolution rather than pull a
+    screen?
+16. Mixed ink on one dryer: allowed in one shift, or batch by ink?
 
 **Electrical**
-21. Service: single or 3-phase? Panel capacity (dryers 21–68 A at 240 V; flashes ~11–19 A; autos 31–46 A 1ph).
+17. Service: single or 3-phase? Panel capacity.
 
 ### Sources
 - See §§1–8.
