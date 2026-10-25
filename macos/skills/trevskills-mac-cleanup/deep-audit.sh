@@ -5,7 +5,7 @@
 # system-data bloat with sizes, (3) large local files that are candidates
 # for iCloud offload. Every section only reports; you decide what to act on.
 #
-# Usage: deep-audit.sh [security|systemdata|largefiles|all]   (default: all)
+# Usage: deep-audit.sh [security|malware|extensions|systemdata|largefiles|all]   (default: all)
 
 set -uo pipefail
 HOME_DIR="${HOME}"
@@ -61,11 +61,7 @@ audit_security() {
   done
   [[ "$hits" == "0" ]] && echo "     (clean — none of the common adware paths present)"
 
-  echo "-- Browser extensions (review for unknowns) --"
-  local ext
-  for ext in "${HOME_DIR}/Library/Application Support/Google/Chrome"/*/Extensions; do
-    [[ -d "$ext" ]] && echo "     Chrome ext dir: $ext ($(ls "$ext" 2>/dev/null | wc -l | tr -d ' ') installed) — review in chrome://extensions"
-  done
+  echo "-- Browser extensions: see 'audit extensions' (names + risk flags per Chrome profile) --"
 
   echo "-- For a real malware SCAN (not just persistence review):"
   echo "     • Objective-See KnockKnock/BlockBlock (free): https://objective-see.org/products.html"
@@ -122,6 +118,60 @@ audit_largefiles() {
   echo "     trevskills-mac-cleanup.sh offload evict \"<path>\"     (keeps it in iCloud, frees local copy)"
   echo "  To move a local file INTO iCloud Drive then free the local copy:"
   echo "     trevskills-mac-cleanup.sh offload move \"<path>\""
+}
+
+audit_extensions() {
+  hr "CHROME EXTENSIONS BY PROFILE (read-only)"
+  local root="${HOME_DIR}/Library/Application Support/Google/Chrome"
+  [[ -d "$root" ]] || { echo "  (Chrome not installed)"; return; }
+  # -I: don't import modules from the cwd or the extension folders being read
+  python3 -I - "$root" <<'PY'
+import json, os, re, sys
+root = sys.argv[1]
+def load(p):
+    try:
+        with open(p, encoding="utf-8-sig") as f: return json.load(f)
+    except Exception: return {}
+names = {k: v.get("name", k) for k, v in load(os.path.join(root, "Local State")).get("profile", {}).get("info_cache", {}).items()}
+def msg(text, d, m):
+    hit = re.fullmatch(r"__MSG_(\w+)__", text or "")
+    if not hit: return text or ""
+    for loc in (m.get("default_locale"), "en", "en_US"):
+        if not loc: continue
+        msgs = {k.lower(): v for k, v in load(os.path.join(d, "_locales", loc, "messages.json")).items()}
+        v = msgs.get(hit.group(1).lower(), {}).get("message")
+        if v: return v
+    return text
+RISKS = [
+    (r"\bvpn\b|proxy", "VPN/proxy: can see all browsing traffic"),
+    (r"coupon|cash ?back|honey|coupert|rakuten|capital one shopping", "coupon/cashback: reads every shopping page"),
+    (r"wallet|metamask|phantom|crypto", "crypto wallet: confirm the seed phrase is backed up and no funds remain before removing"),
+    (r"\b(ai|gpt|chatgpt|seo|summari[sz]e|assistant)\b", "AI/SEO page reader: sends page content to its server"),
+]
+BROAD = {"<all_urls>", "*://*/*", "http://*/*", "https://*/*"}
+for prof in sorted(os.listdir(root)):
+    ext = os.path.join(root, prof, "Extensions")
+    if not os.path.isdir(ext): continue
+    print(f"  [{names.get(prof, prof)}]  ({prof})")
+    rows = []
+    for eid in sorted(os.listdir(ext)):
+        vers = sorted(v for v in os.listdir(os.path.join(ext, eid)) if os.path.isfile(os.path.join(ext, eid, v, "manifest.json"))) if os.path.isdir(os.path.join(ext, eid)) else []
+        if not vers: continue
+        d = os.path.join(ext, eid, vers[-1]); m = load(os.path.join(d, "manifest.json"))
+        name = msg(m.get("name"), d, m); desc = msg(m.get("description"), d, m)
+        perms = set(map(str, m.get("permissions", []) + m.get("host_permissions", [])))
+        for cs in m.get("content_scripts", []): perms |= set(cs.get("matches", []))
+        flags = [why for rx, why in RISKS if re.search(rx, f"{name} {desc}", re.I)]
+        if perms & BROAD: flags.append("broad host access (every site)")
+        rows.append((not flags, name, eid, flags))
+    if not rows: print("     (none)")
+    for _, name, eid, flags in sorted(rows):
+        print(f"     {'>>>' if flags else 'ok '}  {name}  [{eid}]")
+        for f in flags: print(f"            - {f}")
+PY
+  echo "  Remove an extension yourself in chrome://extensions (open the profile first);"
+  echo "  browser automation can't open that page. Broad access alone is common (password"
+  echo "  managers, ad blockers); it matters when you don't recognise the extension."
 }
 
 audit_malware() {
@@ -192,7 +242,8 @@ case "${1:-all}" in
   systemdata) audit_systemdata ;;
   largefiles) audit_largefiles ;;
   malware)    audit_malware ;;
-  all)        audit_security; audit_malware; audit_systemdata; audit_largefiles ;;
-  *) echo "Usage: deep-audit.sh [security|malware|systemdata|largefiles|all]"; exit 1 ;;
+  extensions) audit_extensions ;;
+  all)        audit_security; audit_malware; audit_extensions; audit_systemdata; audit_largefiles ;;
+  *) echo "Usage: deep-audit.sh [security|malware|extensions|systemdata|largefiles|all]"; exit 1 ;;
 esac
 echo; echo "(Audit complete — nothing was changed.)"

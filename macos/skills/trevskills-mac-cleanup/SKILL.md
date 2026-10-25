@@ -52,7 +52,9 @@ The report persists free-space + timestamp to `~/.mac-cleanup/last-run`, so each
 | `./trevskills-mac-cleanup.sh assets trash --apply` | Move those to Trash. |
 | `./trevskills-mac-cleanup.sh clean build-caches --apply` | Delete Next.js/Turbo `.next`/`.turbo` build caches under `~/Developer` (auto-rebuild). |
 | `./trevskills-mac-cleanup.sh snapshots` | Thin Time Machine local snapshots (prompts for admin password — never stored). |
-| `./trevskills-mac-cleanup.sh audit [security\|malware\|systemdata\|largefiles\|all]` | Read-only deep audit. |
+| `./trevskills-mac-cleanup.sh audit [security\|malware\|extensions\|systemdata\|largefiles\|all]` | Read-only deep audit. |
+| `./trevskills-mac-cleanup.sh audit extensions` | Every Chrome extension per profile, with flags: free VPN/proxy, coupon/cashback, crypto wallet, AI/SEO page reader, access to every site. |
+| Connected accounts (OAuth) audit | Chrome-driven walk of Spotify, Google, Facebook, Instagram and GitHub app grants. Run it with any security/malware check; see the section below. |
 | `./trevskills-mac-cleanup.sh audit malware` | Deep sweep: crypto-verify persistence, hosts/cron/login-items/DYLD, network listeners, recent drops. |
 | `./trevskills-mac-cleanup.sh report [baseline_kb]` | Full run report: GB freed, memory/uptime, and a personalized maintenance + restart + frequency plan. |
 | `./trevskills-mac-cleanup.sh processes` | Read-only: uptime/swap, top CPU + memory, per-app aggregates, and a signature-based malware flag. |
@@ -80,6 +82,19 @@ Note Desktop/Documents are usually iCloud-synced, and some folders (e.g. `~/Desk
 3. **Large files > 500 MB** (`LARGE_MB=1000 ... audit largefiles` to raise the bar) — real local files (already-evicted iCloud files are skipped), flagged as offload candidates.
 
 Note: `com.apple.MobileSMS` container + `~/Library/Messages` are Messages storage — they shrink via the Messages app's own "Keep Messages" setting, not this tool.
+
+## Connected accounts (OAuth) audit
+
+The Mac scans can't see this. Apps a user once signed into with Spotify, Google or Facebook keep their permissions on the provider's servers until removed, and they can act without anything running on the Mac. Example: a follow-to-download music tool keeps "manage who you follow" forever, so podcasts or artists show up followed without the user doing it. Whenever the user reports an account acting on its own, or asks for a security/malware check, run `audit extensions` and walk this list with the claude-in-chrome tools:
+
+1. **Spotify** `https://www.spotify.com/account/apps/`: remove follow-gate, promo and contest tools, and anything the user doesn't recognise. Then offer **Sign out everywhere** (account overview).
+2. **Google** `https://myaccount.google.com/connections?authuser=N` for every signed-in account (N = 0, 1, 2 …). Filter by **Access to**: apps with data access (Gmail, Drive, Calendar) matter. "Sign in with Google" only is low risk. Remove via the app → **Delete all** → **Confirm**.
+3. **Facebook** `https://www.facebook.com/settings/?tab=applications`: only **Active** entries can still act; Expired ones can't. Remove → confirm in the dialog. Clicking the dialog's Remove by element ref can fail silently: click by coordinates from a screenshot, then reload and check the app is gone.
+4. **Instagram** `https://www.instagram.com/accounts/manage_access/`.
+5. **GitHub** `https://github.com/settings/applications` (Authorized OAuth Apps and GitHub Apps).
+6. **Meta Accounts Center** → Password and security → **Where you're logged in**: look for locations or devices the user doesn't know, and for logins Meta flags as unrecognised.
+
+Rules: list what you find first, then remove only what the user approves. Never sign in or enter a password; if a page wants one, hand it to the user. Extension removal stays manual, because automation can't open `chrome://extensions`: give the user the extension and profile names from `audit extensions`.
 
 ## Processes & slowness (running slow, high CPU/memory)
 
