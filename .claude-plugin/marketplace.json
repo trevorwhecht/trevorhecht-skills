@@ -10,7 +10,7 @@
     {
       "name": "global",
       "source": "./global",
-      "description": "Stack-agnostic workflow: trevskills-autopilot (end-to-end builds), backlog (capture ideas), trevskills-todo-report (ranked TODO scan), plus the /trevskills-commitpush (uses the repo's own build, or none) and /trevskills-migrate safety commands.",
+      "description": "Stack-agnostic workflow: backlog (capture ideas), trevskills-todo-report (ranked TODO scan), plus the /trevskills-commitpush (uses the repo's own build, or none) and /trevskills-migrate safety commands.",
       "category": "productivity"
     },
     {

@@ -71,8 +71,6 @@ A `Build: none` line in `scrum/project.md` does not stop the search — go on to
 
 If the build fails, STOP: do NOT commit or push. Report the build errors so they can be fixed first. Only proceed once the build passes.
 
-The trevskills-autopilot review loop deliberately skips the build (it verifies behavior in the browser instead), so this gate is the authoritative pass/fail check.
-
 ## Step 4 — Write the commit message
 
 This is the point of the command. Format:
