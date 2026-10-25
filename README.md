@@ -24,11 +24,11 @@ Then install whichever you want:
 
 That's it. Skills become available immediately, and update later with `/plugin marketplace update trevorhecht-skills`.
 
-> **Naming note:** installed as a plugin, skills are namespaced — `trevskills-nextjs-ui` becomes `/nextjs:trevskills-nextjs-ui`, `trevskills-autopilot` becomes `/global:trevskills-autopilot`. If you'd rather type the bare names, use the manual install below.
+> **Naming note:** installed as a plugin, skills are namespaced — `trevskills-nextjs-ui` becomes `/nextjs:trevskills-nextjs-ui`. If you'd rather type the bare names, use the manual install below.
 
 ### Manual — copy into `~/.claude`
 
-Keeps the original unnamespaced names (`/trevskills-nextjs-ui`, `/trevskills-autopilot`):
+Keeps the original unnamespaced names (`/trevskills-nextjs-ui`):
 
 ```bash
 git clone https://github.com/trevorwhecht/trevorhecht-skills.git
@@ -56,7 +56,6 @@ Restart Claude Code afterward.
 
 | | |
 |---|---|
-| **trevskills-autopilot** | Runs a full build end-to-end from one invocation: clarify → spec → plan → execute → review → report, with no approval stops in between. **Requires superpowers** ([setup below](#superpowers-setup)). |
 | **backlog** | Capture one-line ideas into the project's `BACKLOG.md` and read them back. Works in any repo, any language. |
 | **trevskills-todo-report** | Scans the codebase for `TODO[priority]` comments and returns them ranked 1–10. Pairs with the TODO format in `rules/performance.md`. |
 | **/trevskills-commitpush** | Reviews every change, runs the repo's own build as a gate (or none, if the repo has no build), writes a high-level summary commit message, then commits and pushes. Hands off to a stack-specific variant, like `/trevskills-commitpush-nextjs`, when one matches the repo. |
@@ -79,21 +78,6 @@ Restart Claude Code afterward.
 
 ---
 
-## Superpowers setup
-
-**Only `trevskills-autopilot` requires this.** It orchestrates superpowers' own skills (`writing-plans`, `subagent-driven-development`, `test-driven-development`, and both code-review skills) rather than reimplementing them — without superpowers installed, trevskills-autopilot has nothing to call.
-
-Superpowers ships in the official marketplace that comes with Claude Code, so there's no marketplace to add:
-
-```
-/plugin install superpowers@claude-plugins-official
-```
-
-Verify it took by checking that `superpowers:brainstorming` appears in your skill list, then restart Claude Code.
-
-`backlog` *mentions* a `docs/superpowers/plans/` path but doesn't need the plugin — it falls back to `docs/BACKLOG.md` when that folder doesn't exist. Every other skill here is standalone.
-
----
 
 ## Rules (manual step)
 
@@ -125,7 +109,6 @@ Read this section first — several of these skills take real action.
 - **`/trevskills-commitpush` commits and pushes without asking.** By design — invoking it *is* the confirmation. It will push to your current branch, including a default branch.
 - **`/trevskills-migrate` writes to your production database.** It runs dev first, then a go/no-go gate, then production in the same pass. It takes a `pg_dump` backup and refuses to continue if any check fails, but understand the flow before running it. Destructive Prisma flags and database resets are refused at every step.
 - **`trevskills-timecard` has a placeholder pay rate.** Line 23 of `macos/skills/trevskills-timecard/SKILL.md` reads `$0.00/hr` — set it to yours or totals come out as zero.
-- **`trevskills-autopilot` doesn't stop for approval.** That's the whole point of it. Don't reach for it on work you want to review phase by phase.
 
 My own setup also hard-blocks database resets and history-rewriting git commands through a `PreToolUse` hook. That hook isn't included here — these skills assume you've made your own call about guardrails.
 
