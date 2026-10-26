@@ -669,13 +669,17 @@ Evaluate each press for a job; reject on hard constraints, then rank by estimate
 ## 10. Open questions for the shop owner
 
 ### Already answered by Trevor (onewitharts, 2026-10-24). Use these; do not re-ask.
-- Presses: a 6-colour / 4-pallet **manual** with one flash, and a **Brown AP-67J** ("AP67jr") automatic,
-  6 heads / 7 pallets. On the auto a flash takes a head: 6 colours only wet-on-wet, 5 with a flash.
+- Presses: an **M&R Kruzer 6C/4S** manual (6 colours / 4 stations) with **no flash of its own**, and a
+  **Brown AP-67J** ("AP67jr") automatic, 6 heads / 7 pallets. The AP-67J's built-in flash is the only flash
+  the shop owns. On the auto a flash takes a head: 6 colours only wet-on-wet, 5 with a flash.
+- Presses index to the right by default (some newer ones go either way).
+- The Brown ElectraPrint manual is the claude.ai skill `trevskills-brown-electraprint`.
 - Dryers: manual → BBC forced-air 8 ft ("Black Body"), cures waterbased (1:30–2:00 dwell) and plastisol.
   Auto → BBC Little Buddy, plastisol only for now. BBC Aeolus planned.
 - Underbase on the auto = two screens (UB on head 1, flash head 2, cool-down head 3 if available, colours
-  after). On the manual = one screen, print-flash-print on the same platen.
-- Manual rate ≈ 100 shirts per 4 hours with a flash (≈25 PPH); black ink with no flash is much faster.
+  after). On the manual = one screen on the same platen (the manual has no flash).
+- Manual rate ≈ 100 shirts per 4 hours on a dark-garment print-flash-print job (≈25 PPH); black ink with
+  no flash is much faster.
   Auto rate unknown until measured; "500/hr" claims are a label, never a default.
 - Manual is right for ≤ ~50 pieces. Shirts are stacked and wait when the dryer falls behind
   (estimate = slower of press and dryer). Front and back are separate runs.
@@ -699,9 +703,8 @@ Shop ink practice (Trevor, 2026-10-26):
 Sources disagree or the answer is shop-specific. Ask; store answers as config, not constants.
 
 **Equipment inventory**
-1. Manual press and flash: brand and model (or confirm "no brand"). Manual max print area and frame size.
-2. Flash units: how many per press, quartz or IR, can two run at once? Does the AP-67J flash sit in a head
-   (assumed yes) or in a flash port between heads?
+1. Manual max print area and frame size.
+2. Does the AP-67J flash sit in a head (assumed yes) or in a flash port between heads?
 3. "Black Body 8 ft": BBC Forced Air FA-244 (forced air) or Big Buddy III (infrared)? Belt width and
    heated chamber length of each dryer if the catalog row is wrong.
 4. Compressor CFM / hp / tank; does it limit running the auto and a flash together?
@@ -714,8 +717,8 @@ Sources disagree or the answer is shop-specific. Ask; store answers as config, n
 9. Discharge: pot life used? Test print first?
 
 **Time model (calibrate)**
-10. Manual PPH on black ink with no flash, and on multi-colour jobs with a flash (only the ≈25 PPH
-    flashed figure is known).
+10. Manual PPH on black ink with no flash, and on multi-colour jobs (only the ≈25 PPH
+    dark-garment print-flash-print figure is known).
 11. Setup minutes: base + per screen, with and without pin registration; manual vs auto.
 12. Teardown and reclaim minutes per screen.
 13. Crew per press (solo vs loader + catcher) and how PPH changes with crew.
