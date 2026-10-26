@@ -29,6 +29,9 @@ Trevor wants a **full report every single time this skill is used**. Workflow:
    Run the `scan` first anyway and **print the file list in the report** — not as a gate, but so there's a record of what was removed.
    This applies **in shared iCloud folders too** — he was shown that removals there propagate to collaborators and chose it deliberately. Do not re-litigate it each run.
    Files always go to `~/.Trash` (recoverable ~30 days), never `rm` — that safety property is what makes the automatic sweep acceptable, so never "optimize" it into a delete.
+2d. **Always run both sweep dry-runs and print their lists in the report:**
+   `./trevskills-mac-cleanup.sh worktrees` (scrum worktrees of done/aborted jobs) and `./trevskills-mac-cleanup.sh transcripts` (Claude transcripts untouched 30+ days).
+   Unlike `assets`, these keep the approval gate: show the user both lists, and run `worktrees --apply` / `transcripts --apply` only after the user says yes. Name any branch the apply kept as unmerged so the user can `git branch -D` it by hand.
 3. **End with:** `./trevskills-mac-cleanup.sh report <baseline_kb>` — pass the baseline so it shows "Freed THIS session". If the session did no cleanup (just a checkup), run `report` with no argument.
 4. **Present the whole report to Trevor**, including: GB freed, memory/uptime summary, and the maintenance plan (restart cadence + how often to run this skill).
 
@@ -40,6 +43,8 @@ The report persists free-space + timestamp to `~/.mac-cleanup/last-run`, so each
 - **Asset sweep** moves to `~/.Trash` (recoverable ~30 days). Matches ONLY Illustrator default-export names (`Asset`, `Asset 3`, `Asset 15@300x`); excludes `*.photoslibrary`, `~/Library`, keys, `node_modules`, `.git`, `*FINAL*`.
 - **Audit changes nothing.** It reports and raises questions; the user decides.
 - **Offload** keeps the file in iCloud and only evicts the local copy (re-downloads on demand).
+- **Worktrees sweep** touches only `<repo>/.claude/worktrees/scrum-<id>` dirs whose job is `done` or `aborted` on that repo's `scrum/board.json`, for repos in the scrum registry. Other stages, `scrum-*` dirs not on the board, non-`scrum-` dirs and anything outside `.claude/worktrees/` are never touched. Branches go via `git branch -d` only (never `-D`), so an unmerged branch is kept and named. A missing or malformed registry or board is skipped with a note, never read as "all stale".
+- **Transcripts sweep** archives, never deletes: each `*.jsonl` under `~/.claude/projects` untouched 30+ days is gzipped to `~/.claude/transcript-archive/<project>/<path>.gz`, verified byte for byte against the original, and only then is the original removed. Any error keeps the original. `memory/` folders are never touched.
 
 ## Quick reference
 
@@ -63,13 +68,15 @@ The report persists free-space + timestamp to `~/.mac-cleanup/last-run`, so each
 | `./trevskills-mac-cleanup.sh processes reset --self-check` | Verify the never-kill denylist still fires. Run after ANY edit to that list. |
 | `./trevskills-mac-cleanup.sh offload evict "<path>"` | Free local copy of an iCloud-Drive file (stays in cloud). |
 | `./trevskills-mac-cleanup.sh offload move "<path>" [--apply]` | Move a local file into iCloud Drive, then evict. |
+| `./trevskills-mac-cleanup.sh worktrees [--apply]` | List (or remove) scrum worktrees of `done`/`aborted` board jobs; deletes the `scrum/<id>` branch only if merged (`branch -d`). |
+| `./trevskills-mac-cleanup.sh transcripts [--apply]` | List (or gzip-archive to `~/.claude/transcript-archive`) Claude transcripts untouched 30+ days; verified before the original is removed. |
 | `./trevskills-mac-cleanup.sh archive "<src>" "<archive>" [months] [--apply]` | Move files in `<src>` not modified in `<months>` (default 6) into `<archive>` (a sibling folder), for offloading. |
 
 Cache categories: `app-caches` `dev-caches` `adobe-caches` `messages-cache` `logs` `system-caches` `build-caches`. Default `clean` = the safe set (not `system-caches`/`build-caches`).
 
 **NEVER store passwords.** The `snapshots` step uses `sudo` and must let macOS prompt for the password interactively every run. Do not hardcode a password anywhere in this skill — a plaintext admin password in a file is a full-system credential leak.
 
-**Always** dry-run and show the list before any `--apply` — with one deliberate exception: **`assets` no longer needs approval** (Trevor's call, 2026-08-24). Still print the scanned list in the report so there's a record, but apply without waiting. Everything else (cache purge, offload, archive, snapshots) keeps the dry-run-then-approve gate.
+**Always** dry-run and show the list before any `--apply` — with one deliberate exception: **`assets` no longer needs approval** (Trevor's call, 2026-08-24). Still print the scanned list in the report so there's a record, but apply without waiting. Everything else (cache purge, offload, archive, snapshots, worktrees, transcripts) keeps the dry-run-then-approve gate.
 
 Note Desktop/Documents are usually iCloud-synced, and some folders (e.g. `~/Desktop/Mockups`) are **shared with clients** — trashing there propagates to collaborators as well as his other devices. He was shown this and opted in anyway; files land in `~/.Trash` and are recoverable ~30 days. Say what was removed in the report; don't stop to ask.
 
