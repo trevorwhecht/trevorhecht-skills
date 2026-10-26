@@ -16,7 +16,7 @@ any published figure.
 | Rule | Detail |
 |---|---|
 | Head budget (auto) | `screens + flashes + cooldowns ≤ heads` per revolution. Underbase is a screen. A flash takes a head on the shop's Brown AP-67J (6/7): 6 screens wet-on-wet only, 5 screens when one head flashes. UB screens count, so a dark 3-colour job is UB1 · flash · UB2 · 3 colours, with the cool-down only when a head is spare. |
-| Underbase | Auto: two UB screens (UB, flash, UB2) or a second revolution at ≈ half speed. Manual: one screen, print-flash-print on the same platen. |
+| Underbase | Auto: two UB screens (UB, flash, UB2) or a second revolution at ≈ half speed. Manual: one screen, print-flash-print on the same platen. The shop's manual has no flash (only the AP-67J does), so a dark-garment manual job needs an external or borrowed flash, or the AP-67J, or is a no-flash single hit. |
 | Dryer rate | `PPH = floor(beltWidth ÷ 14) × chamberLength × 3600 ÷ (dwell × 16)` (14 in garment on a 16 in pitch). Dwell ≈ 30 s plastisol, 75 s+ waterbased. Matches BBC's tables within ~4 %. Belt and chamber come from the shop's equipment record (seed catalog); a dryer with no dimensions and no entered rate has no computed rate. |
 | Dryer gates ink | A dryer with no waterbased rate cannot cure waterbased or discharge. One belt speed per dryer: mixed inks run at the slowest. |
 | Job rate | `min(press PPH, dryer PPH for that ink, crew rate)`. Shirts stack and wait when the dryer is the limit. |
@@ -36,7 +36,7 @@ any published figure.
 
 - Inventing a belt pitch or gap. Use the 14 in / 16 in constants above unless the shop gives others.
 - Taking a maker's shirts-per-hour as a default rate.
-- Letting a flash take a head on a manual press. It swings over a pallet; it costs no head there.
+- Letting a flash take a head on a manual press. In general a manual flash swings over a pallet and costs no head there; this shop's manual has no flash at all.
 - Counting the second UB hit as free on an auto. It is a second screen or a second revolution.
 - Suggesting a flash for discharge. The shop never flashes discharge.
 - Asking the shop a §10 question that is already answered.
