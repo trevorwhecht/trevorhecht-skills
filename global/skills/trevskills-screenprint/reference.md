@@ -681,6 +681,19 @@ Evaluate each press for a job; reject on hard constraints, then rank by estimate
   (estimate = slower of press and dryer). Front and back are separate runs.
 - All rates are user-entered per press and dryer; the app never uses a published PPH in an estimate.
 
+Shop ink practice (Trevor, 2026-10-26):
+- Waterbased groups: **HSA** (clear base, e.g. Matsui OW Stretch); **HSA+** (white base, 70%+ white components;
+  acts as its own underbase, so print-flash-print straight onto black shirts with no separate underbase screen);
+  **LSA** (e.g. Matsui 301 RC Neo); **discharge**.
+- Plastisol groups: **Normal** and **Softhand** (additive; feels more like LSA; light garments).
+- LSA and discharge avoid formulas with 50%+ white (thicker, less soft and breathable).
+- Discharge never needs an underbase. Some shops print clear discharge as an underbase, flash, then LSA on top.
+  This shop never flashes discharge (formaldehyde, poor ventilation): never suggest flashing it.
+- Ink usage per run depends on mesh, stroke count (flood-print vs flood-print-flood-print uses more ink,
+  possibly near double, unmeasured) and above all each screen's open area. Trevor will weigh containers
+  before and after runs to measure. No default usage figure exists.
+- Trevor keeps jars of every mixed ink. An empty jar of a stock formula saves a new jar (~$1.50) and label.
+
 ### Still open
 
 Sources disagree or the answer is shop-specific. Ask; store answers as config, not constants.
@@ -698,7 +711,7 @@ Sources disagree or the answer is shop-specific. Ask; store answers as config, n
 6. Mesh defaults by ink and role (UB, highlight, top colours, WB, discharge). 200 or 230 for UB on the auto?
 7. Default dwell and dryer temperature per ink type (plastisol, low-cure, WB, discharge).
 8. Poly / blends: grey blocker always? Which low-cure ink? Lower dryer setting?
-9. Discharge: printed at all? Pot life used? Test print first?
+9. Discharge: pot life used? Test print first?
 
 **Time model (calibrate)**
 10. Manual PPH on black ink with no flash, and on multi-colour jobs with a flash (only the ≈25 PPH
