@@ -63,7 +63,7 @@ Conventions used throughout:
 |---|---|---|
 | Who moves | Operator rotates heads/platens, pulls every stroke | Motor/air indexes; squeegees driven |
 | Heads | Typically 1–8 colors, 1–8 stations; often "all heads down" (colors = stations) [1] | Always more stations than colors [1] |
-| Flash | Swing-over flash, operator times it (seconds) | Flash occupies a head; timed per index |
+| Flash | Swing-over flash, operator times it (seconds); the shop's manual has no flash (see §10) | Flash occupies a head; timed per index |
 | Consistency | Varies with operator fatigue | Same stroke every time → can use higher mesh, even deposits [11] |
 | Crew | 1 per press [2] | 2 typical at speed (loader + unloader/catcher) [2]; 3 recommended (load, unload, watcher) [12] |
 | Speed | 40–100 PPH [2] | 500–800 PPH sustainable [2] |
@@ -131,7 +131,8 @@ Formula: top_colors = C − 1 (UB) − flashes − cooldowns. Double-hit UB (two
 
 ### Underbase: one screen on a manual, two on an auto
 - Manual: print UB, swing flash over the same platen, print UB again with the SAME screen (PFP). The platen
-  never leaves the head, so one screen does both hits.
+  never leaves the head, so one screen does both hits. In this shop the manual has no flash (see §10): a
+  manual PFP needs an external or borrowed flash, or the AP-67J, or is a no-flash single hit.
 - Auto: a pallet visits each head once per revolution. A second UB hit after the flash must come from a
   different head → a second, identical UB screen ("UB1, flash, UB2") — or a second revolution via a
   sequencing program (Revolver) at a speed penalty [7][8].
@@ -484,7 +485,7 @@ Evaluate each press for a job; reject on hard constraints, then rank by estimate
 1. **Head count**: `screens + flashes + cooldowns <= heads` (single revolution) — §2. Allow
    `revolutions = 2` only if the press supports sequencing (M&R Revolver etc.) and apply speed ÷ 2.
 2. **Flash availability**: dark garment / UB job needs a flash unit on (or available for) that press; count
-   flash units owned per press.
+   flash units owned per press. The shop owns one flash, the AP-67J built-in; none for the manual (§10).
 3. **Image size ≤ press max print area** (and screen frame fits). Examples: M&R Sportsman EX 4045 = 16"x18",
    5050 = 20"x20" (page overview also mentions 20"x28") [1]; ROQ YOU 16"x20" [2]; Brown ElectraPrint Jr
    20"x24" frames [3]; MHM Matrix 20x28 / 28x40 / 31x40 [4].
