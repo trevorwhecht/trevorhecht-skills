@@ -23,6 +23,7 @@ any published figure.
 | Real auto speed | 250–420 PPH solo, 500–850 with loader + catcher, on runs over 100. Makers claim 1,000+. Colour count slows a manual, not an auto. |
 | Setup | `base + per screen`: ≈ 5 + 2–3 min/screen with pin registration, ≈ 45 min total without. Autos need an extra UB screen, so setup is longer than the manual's. |
 | Manual vs auto | Break-even 50–72 pieces (shop: ≤ 50 → manual). Forced to manual: more heads than the press has, print bigger than the auto's platen, ink the auto's dryer cannot cure, odd garments (sleeves, bags, zippers). |
+| Shop ink groups | Waterbased HSA, HSA+ (own underbase, no UB screen), LSA, discharge; plastisol Normal, Softhand. Discharge needs no underbase and the shop never flashes it. Details in reference.md §10. |
 | Published PPH | Display only. Estimates use the shop's entered rates; a press with no rate falls back to the global model. |
 
 ## Where to read more
@@ -37,4 +38,5 @@ any published figure.
 - Taking a maker's shirts-per-hour as a default rate.
 - Letting a flash take a head on a manual press. It swings over a pallet; it costs no head there.
 - Counting the second UB hit as free on an auto. It is a second screen or a second revolution.
+- Suggesting a flash for discharge. The shop never flashes discharge.
 - Asking the shop a §10 question that is already answered.
