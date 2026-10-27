@@ -37,9 +37,10 @@ the top. `items-center` overflows a tall modal both ways and **its top scrolls o
 Every Fix restates the component's own `sm:` value rather than dropping it: overriding a default
 for mobile silently changes desktop too unless you put it back.
 
-**shadcn `Dialog`** has no placement prop: it centres with `top-1/2 -translate-y-1/2`. Apply the
-same idea on `DialogContent` below `sm:` (`top-[var(--app-navbar-height)] translate-y-0 my-auto`
-inside a flex overlay, `sm:` restoring the defaults).
+**shadcn `Dialog`** has no placement prop: `DialogContent` is `position: fixed` and a sibling of
+the overlay, so flex or `my-auto` on the overlay cannot move it. Override its own position below
+`sm:` (`top-[var(--app-navbar-height)] translate-y-0` plus a matching `max-h`), and hand back
+`sm:top-1/2 sm:-translate-y-1/2`.
 
 **Never bottom-pin a modal on mobile.** It reads as a dismissed sheet and puts the title furthest
 from the thumb. Centred or top-pinned only.

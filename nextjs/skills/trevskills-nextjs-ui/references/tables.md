@@ -26,9 +26,9 @@ the container width.
 1. **Strip horizontal padding and margins.** Side padding goes first, not last. Kill the card's
    `px-*`, the wrapper's side padding, and drop cell padding to the gutter minimum (`px-2`, or
    `px-1` on mobile).
-2. **Shrink the type one step** at the mobile breakpoint (`text-sm` → `text-xs` → `text-[11px]`).
-3. **Accept the scroll.** Some tables genuinely cannot fit a phone, and a ten-column table
-   scrolling sideways is correct — far better than ten columns wrapped into vertical mush.
+2. **Accept the scroll.** Never shrink the type to make it fit (UB-4). Some tables genuinely
+   cannot fit a phone, and a ten-column table scrolling sideways is correct — far better than ten
+   columns wrapped into vertical mush.
 
 **Never hide, drop or move a column, value or button into an expanded row to stop a table
 scrolling.** Every column stays visible at every width. A table that does not fit scrolls sideways
@@ -65,14 +65,15 @@ current `fr` fill behaviour is unchanged.
 <div className="grid grid-cols-[32px_1fr_1fr_1fr_2fr]">
 ```
 
-#### Long text in a narrow cell: wrap, then shrink, then ellipsis
+#### Long text in a narrow cell: wrap to 2 lines, then ellipsis
 
-Long text goes through three steps in order: wrap to 2 lines; if it still does not fit, shrink one
-type step; if it still does not fit, truncate with an ellipsis and put the full value in `title`.
+On a phone or iPad (below 1024px), long text in a narrow cell wraps to at most 2 lines, then ends
+in an ellipsis with the full value in `title`. This is UB-4's one exception; it never shrinks the
+font.
 
 ```tsx
-// ✓ — 2 lines, then ellipsis, full value on hover
-<div className="line-clamp-2 text-xs" title={name}>{name}</div>
+// ✓ — 2 lines, then ellipsis, full value on hover, same type size as its row
+<div className="line-clamp-2" title={name}>{name}</div>
 
 // ✗ — cut to one line with no way to read the rest
 <div className="truncate">{name}</div>
@@ -108,7 +109,7 @@ both a mobile and a desktop row is sized to whichever needs more.
 
 #### Alignment — left, always
 
-**Headers, their body cells, and the totals row are ALL left-aligned.** Every column reads as one
+**Headers, their body cells, and the totals row are ALL left-aligned** (UB-27). Every column reads as one
 straight vertical edge from heading to total. Right-aligned numbers under a left-aligned heading is
 the most common cause of a table that "looks off" with no obvious reason why.
 
@@ -209,11 +210,29 @@ is a pixel of horizontal scrolling.
 <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
 ```
 
+#### One shared table kit, one compact row height
+
+Every table in an app is built from one shared set of table helpers or components (column list,
+`tableMinWidth`, header/row/footer cells, the inline-edit input), so a fix lands in every table at
+once (UB-30). Widths, padding, gutters, alignment and row height come from those helpers and theme
+variables, never per-table copies.
+
+- **Rows are only as tall as their content**, with one compact row height in every table: no
+  `min-h-*`, fixed `h-*` or extra `py-*` on a row to make it look roomier.
+
+```tsx
+// ✓ — every table imports the same cells, values from theme variables
+<TableRow className="py-(--table-row-py)">{COLUMNS.map(col => <TableCell col={col} … />)}</TableRow>
+
+// ✗ — a per-table copy of padding and height that drifts from every other table
+<tr className="h-14 py-3"><td className="px-5 text-right">…</td></tr>
+```
+
 #### Other rules
 
 - `whitespace-nowrap` on names, dates, IDs, status badges and numbers. Never truncate or wrap table
   data to dodge a scroll, except long text in a narrow cell as the long-text rule allows — once you
-  are at step 3 of the ladder, scrolling is the correct answer.
+  are at step 2 of the ladder, scrolling is the correct answer.
 - Give the scroll container `scrollbarWidth: 'thin'` and a muted thumb.
 - A totals row carries one empty cell per column it does not fill, so it stays on the same tracks as
   the rows above. Never span or pad it into position.

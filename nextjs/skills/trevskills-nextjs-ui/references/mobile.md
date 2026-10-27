@@ -21,6 +21,8 @@ From phone and iPad bugs in the apps. Table detail is in `tables.md`.
   edge, at the same x as the `$` of a plain money cell. See tables.md "Editable money cell".
 - **A column's header, body and footer total share one alignment set**, defined once per column in
   the shared column list. Never a per-cell `text-right` or padding nudge. See tables.md "Alignment".
+- **One compact row height, one shared table kit.** Rows are only as tall as their content, and
+  every table uses the same helpers and theme variables. See tables.md "One shared table kit".
 
 #### One viewport hook
 
