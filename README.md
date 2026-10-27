@@ -65,7 +65,7 @@ Restart Claude Code afterward.
 
 | | |
 |---|---|
-| **trevskills-nextjs-ui** | Component selection, modal patterns, styling rules, layout, tables, accessibility, and mobile responsiveness for Next.js + shadcn/ui + Tailwind. The largest skill here. |
+| **trevskills-nextjs-ui** | Component selection, modal patterns, styling rules, layout, tables, accessibility, and mobile responsiveness for Next.js + Tailwind with HeroUI or shadcn/ui. A short index plus one reference file per topic. |
 | **trevskills-twilio-email-setup** | Twilio email/SMS wiring for Next.js: env vars, domain authentication, correct request shapes, and the common 400 errors with their causes. |
 | **/trevskills-commitpush-nextjs** | The Next.js variant of `/trevskills-commitpush`: same flow, with `npm run build` (the Vercel build) as a required gate. Needs the `global` plugin. |
 
