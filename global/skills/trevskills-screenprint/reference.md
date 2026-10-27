@@ -699,6 +699,19 @@ Shop ink practice (Trevor, 2026-10-26):
   before and after runs to measure. No default usage figure exists.
 - Trevor keeps jars of every mixed ink. An empty jar of a stock formula saves a new jar (~$1.50) and label.
 
+Ink mixing structure (Trevor, 2026-10-27):
+- Waterbased (Matsui, Magna): a **brand** has **lines** (e.g. Matsui 301 RC Neo = LSA, OW Stretch = HSA,
+  Brite/Alpha/HM Discharge). Each line has its **own bases** (301 RC: Clear 301C + Matte 301M white;
+  OW Stretch: Stretch Clear + Stretch White). **Pigments belong to the brand** and work with every line
+  (violet, blue MG, blue MD...). A formula = one line's base(s) + brand pigments, in %.
+- Matsui ColorMix data agrees: 301 RC formulas sit on Clear 301C / Matte 301M; OW Stretch on Stretch Clear /
+  Stretch White (incl. -5 variants); each discharge line on its own Discharge Base / Discharge White.
+- A custom ink of one line may only use that line's bases (an LSA custom never offers discharge or Stretch bases).
+- **Pantone library formulas are fixed data**: name, code, brand, recipe are never edited. Only jars get refilled.
+  To change one, copy it into a new custom ink.
+- **Plastisol** (future): no pigment mixing. Each colour is ready to print (pigment + base already in it);
+  a mix is colours mixed with colours.
+
 ### Still open
 
 Sources disagree or the answer is shop-specific. Ask; store answers as config, not constants.
