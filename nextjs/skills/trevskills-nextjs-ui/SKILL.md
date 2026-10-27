@@ -245,10 +245,48 @@ the container width.
    `px-1` on mobile). A five-column table that "needs" scrolling usually just has 16px of dead
    space on both sides of every cell.
 2. **Shrink the type one step** at the mobile breakpoint (`text-sm` → `text-xs` → `text-[11px]`).
-3. **Drop non-essential columns at mobile only** — and only ones genuinely recoverable elsewhere
-   (an expandable row, a detail modal). Never drop a column the user came to read.
-4. **Accept the scroll.** Some tables genuinely cannot fit a phone, and a ten-column table
+3. **Accept the scroll.** Some tables genuinely cannot fit a phone, and a ten-column table
    scrolling sideways is correct — far better than ten columns wrapped into vertical mush.
+
+**Never hide, drop or move a column, value or button into an expanded row to stop a table
+scrolling.** Every column stays visible at every width. A table that does not fit scrolls sideways
+inside its own `overflow-x-auto` wrapper.
+
+```tsx
+// ✓ — all columns stay; the wrapper scrolls
+<div className="w-full overflow-x-auto"><table className="w-full" style={{ minWidth: tableMinWidth(COLUMNS) }}>
+
+// ✗ — columns hidden on phones, their values pushed into an expanded row
+<th className="hidden lg:table-cell">COST</th>
+```
+
+#### Phones and iPads: columns hug their content
+
+Below 1024px, columns sit as close together as they can without overlapping or clipping. Size each
+track to its content using the minimums table below, with a 4px gutter, and no `fr` slack between
+number columns (give any leftover space to the name column, or let it scroll). At 1024px and up the
+current `fr` fill behaviour is unchanged.
+
+```tsx
+// ✓ — below 1024px: tracks sized to content, 4px gutter
+<div className="grid gap-1 grid-cols-[32px_48px_88px_88px_minmax(120px,1fr)] lg:gap-3 lg:grid-cols-[32px_1fr_1fr_1fr_2fr]">
+
+// ✗ — number columns spread by fr on a phone, leaving gaps between figures
+<div className="grid grid-cols-[32px_1fr_1fr_1fr_2fr]">
+```
+
+#### Long text in a narrow cell: wrap, then shrink, then ellipsis
+
+Long text goes through three steps in order: wrap to 2 lines; if it still does not fit, shrink one
+type step; if it still does not fit, truncate with an ellipsis and put the full value in `title`.
+
+```tsx
+// ✓ — 2 lines, then ellipsis, full value on hover
+<div className="line-clamp-2 text-xs" title={name}>{name}</div>
+
+// ✗ — cut to one line with no way to read the rest
+<div className="truncate">{name}</div>
+```
 
 #### When does it "not fit"? — concrete minimums
 
@@ -332,6 +370,17 @@ neither is nudged — so the thing to avoid is padding that differs between the 
 <div className="text-right">${amount.toFixed(2)}</div>
 ```
 
+**Editable money cell.** An `<input>` in a money cell keeps the `$` aligned with the header's first
+letter, like a plain money cell, and is at least `88px` wide so `$1,234.56` fits.
+
+```tsx
+// ✓ — $ stays the first glyph on the shared track; input wide enough for $1,234.56
+<input className="w-full min-w-[88px] text-left tabular-nums" defaultValue={`$${amount.toFixed(2)}`} />
+
+// ✗ — narrow input clips the figure
+<input className="w-12" />
+```
+
 #### In-cell buttons need their own gutter
 
 A cell with an info/help/action button must not let that button crowd the next column.
@@ -386,7 +435,8 @@ scrolling the user has to do to read the same data.
 #### Other rules
 
 - `whitespace-nowrap` on names, dates, IDs, status badges and numbers. Never truncate or wrap table
-  data to dodge a scroll — once you are at step 4 of the ladder, scrolling is the correct answer.
+  data to dodge a scroll, except long text in a narrow cell as the long-text rule allows — once you
+  are at step 3 of the ladder, scrolling is the correct answer.
 - Give the scroll container standard affordance: `overflow-x-auto` with `scrollbarWidth: 'thin'`
   and a muted thumb, so the scrollbar reads as part of the design rather than an accident.
 - A totals row carries one empty cell per column it does not fill, so it stays on the same tracks as
