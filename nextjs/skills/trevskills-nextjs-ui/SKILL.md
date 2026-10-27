@@ -435,7 +435,8 @@ scrolling the user has to do to read the same data.
 #### Other rules
 
 - `whitespace-nowrap` on names, dates, IDs, status badges and numbers. Never truncate or wrap table
-  data to dodge a scroll — once you are at step 4 of the ladder, scrolling is the correct answer.
+  data to dodge a scroll, except long text in a narrow cell as the long-text rule allows — once you
+  are at step 3 of the ladder, scrolling is the correct answer.
 - Give the scroll container standard affordance: `overflow-x-auto` with `scrollbarWidth: 'thin'`
   and a muted thumb, so the scrollbar reads as part of the design rather than an accident.
 - A totals row carries one empty cell per column it does not fill, so it stays on the same tracks as
