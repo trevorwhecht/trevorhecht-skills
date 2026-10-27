@@ -709,6 +709,11 @@ Ink mixing structure (Trevor, 2026-10-27):
 - A custom ink of one line may only use that line's bases (an LSA custom never offers discharge or Stretch bases).
 - **Pantone library formulas are fixed data**: name, code, brand, recipe are never edited. Only jars get refilled.
   To change one, copy it into a new custom ink.
+- **HSA+** is Trevor's own name (OW Stretch or Magna AquaFlex, 70%+ white base, no underbase needed); other
+  shops use the standard line names. **MSA** (Trevor's) = half OW Stretch base + half LSA base (Matsui sells it as
+  "Easy Print" but publishes no formulas). Trevor uses only **Brite** discharge; other lines are opt-in per shop.
+- Formula catalogs: Matsui, Magna AquaFlex, Wilflex Epic Rio and Screen Print Direct publish mixing formulas;
+  Permaset does not (brand flag `hasMixFormula`).
 - **Plastisol** (future): no pigment mixing. Each colour is ready to print (pigment + base already in it);
   a mix is colours mixed with colours.
 
