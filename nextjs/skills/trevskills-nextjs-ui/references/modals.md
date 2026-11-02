@@ -104,5 +104,5 @@ sideways swipe on a table inside the modal chains to the page. Contain it once i
 ```
 
 Put `overscroll-behavior` on the dialog only, not on every `overflow-y-auto` inside it, or each card
-swallows the wheel and the modal cannot scroll. Support: MDN Baseline — `overscroll-behavior` 2022,
-`:has()` 2023.
+swallows the wheel and the modal cannot scroll. Support: MDN Baseline — `:has()` 2023; `overscroll-behavior` is
+not Baseline (MDN: limited availability).
