@@ -5,13 +5,15 @@ usage: mine.py candidates [--days 14] [--exclude S]   one condensed line per new
        mine.py rank [--top 20] [--min 0.5] [--days 14] [--exclude S]   Jev-ranked lines, then "MARK <epoch>"
        mine.py text <path>                             typed text of one transcript, "<role>: <text>" lines
        mine.py mark <epoch>                            move the last-mined marker
+       mine.py archive [--days 30] [--dest DIR] [--apply]   xz mined .jsonl older than --days into Google Drive
 Headless (sdk-cli) sessions and subagent transcripts are skipped. Stdlib only.
 """
-import argparse, json, re, subprocess, sys, time
+import argparse, json, lzma, os, re, subprocess, sys, time
 from pathlib import Path
 
 ROOT = Path.home() / ".claude" / "projects"
 MARKER = Path.home() / ".claude" / "transcript-mining" / "last-mined"
+CLOUD = Path.home() / "Library" / "CloudStorage"
 JEV = Path.home() / ".claude" / "scripts" / "jev-rank.py"
 QUESTIONS = [
     "This chat ends with work that was planned or started but not finished",
@@ -180,6 +182,83 @@ def mark(epoch):
     return 0
 
 
+def drive_dest():
+    """<first GoogleDrive-*/My Drive by name>/claude-transcript-archive, or None."""
+    hits = sorted(CLOUD.glob("GoogleDrive-*/My Drive"))
+    return hits[0] / "claude-transcript-archive" if hits else None
+
+
+def same_xz(xz_path, orig):
+    """True when xz_path decompresses to exactly the bytes of orig (streamed in 1 MiB chunks)."""
+    with lzma.open(xz_path, "rb") as a, open(orig, "rb") as b:
+        while True:
+            x, y = a.read(1 << 20), b.read(1 << 20)
+            if x != y:
+                return False
+            if not x:
+                return True
+
+
+def archive(dest, days, apply):
+    """xz-compress mined .jsonl files older than `days` into dest/<rel>.xz, verify, then remove the original."""
+    dest = dest or drive_dest()
+    if dest is None:
+        print("mine: no Google Drive folder, archive skipped")
+        return 0
+    try:
+        since = float(MARKER.read_text().strip())
+    except (OSError, ValueError):
+        print("mine: no last-mined marker, archive skipped")
+        return 0
+    cutoff = time.time() - days * 86400
+    picked = []
+    for p in sorted(ROOT.rglob("*.jsonl")):
+        rel = p.relative_to(ROOT)
+        if "memory" in rel.parts[:-1] or p.is_symlink() or not p.is_file():
+            continue
+        try:
+            st = p.stat()
+        except OSError:
+            continue
+        if int(st.st_mtime) <= since and st.st_mtime <= cutoff:  # whole seconds, as in find()
+            picked.append((p, rel, st.st_size))
+    if not apply:
+        for p, _, size in picked:
+            print(f"{size}\t{p}")
+        print(f"{len(picked)} file(s)")
+        return 0
+    done = kept = 0
+    for p, rel, _ in picked:
+        target = dest / f"{rel}.xz"
+        tmp = target.with_name(target.name + ".tmp")
+        reason = None
+        if target.exists():
+            reason = "archive exists"
+        else:
+            try:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                with open(p, "rb") as src, lzma.open(tmp, "wb") as out:
+                    while chunk := src.read(1 << 20):
+                        out.write(chunk)
+                if not same_xz(tmp, p):
+                    reason = "verify failed"
+                else:
+                    os.rename(tmp, target)
+                    p.unlink()
+            except (OSError, lzma.LZMAError) as e:
+                reason = str(e) or type(e).__name__
+            finally:
+                tmp.unlink(missing_ok=True)
+        if reason:
+            kept += 1
+            print(f"KEPT ({reason}) {p}")
+        else:
+            done += 1
+            print(f"archived {p} -> {target}")
+    print(f"mine: {done} archived, {kept} kept")
+    return 0
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -192,6 +271,10 @@ def main():
             s.add_argument("--min", type=float, default=0.5)
     sub.add_parser("text").add_argument("path", type=Path)
     sub.add_parser("mark").add_argument("epoch", type=lambda v: int(float(v)))
+    s = sub.add_parser("archive")
+    s.add_argument("--days", type=int, default=30)
+    s.add_argument("--dest", type=Path)
+    s.add_argument("--apply", action="store_true")
     a = p.parse_args()
     if a.cmd == "candidates":
         for _, line in find(a.days, a.exclude):
@@ -201,6 +284,8 @@ def main():
         return rank(a)
     if a.cmd == "text":
         return text(a.path)
+    if a.cmd == "archive":
+        return archive(a.dest, a.days, a.apply)
     return mark(a.epoch)
 
 
