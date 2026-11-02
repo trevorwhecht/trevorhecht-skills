@@ -1,6 +1,6 @@
 ---
 name: trevskills-mine
-description: Mine recent interactive Claude Code chats for unfinished work, facts the user taught that never reached an .md, and dropped findings. Jev ranks only the sessions new since the last run, one Opus reader reads the top ~20, and the results are queued as backlog items and knowledge saves, then archives mined transcripts older than 30 days to Google Drive. Use for "mine my transcripts", "what did we leave unfinished", or /trevskills-mine.
+description: Mine recent interactive Claude Code chats for unfinished work, facts the user taught that never reached an .md, and dropped findings. Jev ranks only the sessions new since the last run, one Opus reader reads the top ~20, and the results are queued as backlog items and knowledge saves. Use for "mine my transcripts", "what did we leave unfinished", or /trevskills-mine.
 disable-model-invocation: true
 allowed-tools: Bash(python3 *), Read, Grep, Glob, Agent
 ---
@@ -21,7 +21,7 @@ Run the steps in order. Never skip to step 5 early.
 python3 ~/.claude/skills/trevskills-mine/mine.py rank --exclude <current session id>
 ```
 
-- Output `mine: no new sessions` → say "nothing new", skip to step 6. Do not run `mark`.
+- Output `mine: no new sessions` → say "nothing new" and stop. Do not run `mark`.
 - Exit 1 (`mine: jev-rank failed: ...`) → report the reason and stop. The marker stays put, so
   the next run covers these sessions again.
 - Otherwise each line is `<score>\t<path>\t<date> | <cwd> | <session8> | ...`, best first, and the
@@ -87,32 +87,32 @@ Only after every line from step 2 has been added, skipped or reported:
 python3 ~/.claude/skills/trevskills-mine/mine.py mark <epoch from the MARK line>
 ```
 
-## 6. Archive
-
-After the mark (also when step 1 found nothing new), move mined transcripts older than 30 days to
-Google Drive:
-
-```bash
-python3 ~/.claude/skills/trevskills-mine/mine.py archive --apply
-```
-
-Each mined `.jsonl` (mtime no later than the marker) older than 30 days is xz-compressed into
-`<Google Drive>/My Drive/claude-transcript-archive/<project>/<path>.xz`, checked byte for byte, and
-only then removed. The last line is `mine: <N> archived, <M> kept`; a `KEPT (...)` line names each
-file left in place. Output `mine: no Google Drive folder, archive skipped` or `mine: no last-mined
-marker, archive skipped` → note "archive skipped"; it is not an error.
-
-## 7. Summary
+## 6. Summary
 
 End with three short lists: **Added** (backlog items and saves, each with its repo or file),
 **Skipped** (duplicates, with the line that already covers each), and **Reported** (repos without
-scrum, `MD CONTRADICTION`s). Then the number of sessions ranked, the new marker, and the number of
-transcripts archived and kept (or "archive skipped").
+scrum, `MD CONTRADICTION`s). Then the number of sessions ranked and the new marker.
+
+## 7. Archive
+
+Dry run of the Drive archive (it changes nothing and never calls rclone):
+
+```bash
+python3 ~/.claude/skills/trevskills-mine/mine.py archive
+```
+
+It lists each interactive session at or before the marker and older than 30 days as
+`would archive <path> -> gdrive:claude-transcripts/<project>/<id>.jsonl.xz`. Report its final
+`mine: ...` line as one more line after the summary.
+
+`archive --apply` xz-compresses each listed session, uploads it with `rclone copyto`, and deletes the
+local `.jsonl` only after the remote copy's size and md5 (`rclone lsjson --hash`) match. It needs
+rclone with a `gdrive:` remote. It is not part of the weekly run yet: never pass `--apply` here.
 
 ## Weekly run
 
 Runs once a week unattended as `claude -p "/trevskills-mine"` (a LaunchAgent the user sets up). The
 `last-mined` marker keeps each run to sessions newer than the previous one. An unattended run uses
 no `--exclude`. The pass never proposes scrum agent or SKILL.md edits; it only produces backlog
-items and knowledge-save jobs. Sessions started with `/trevskills-scrum` are skipped. Each run also
-archives mined transcripts older than 30 days to Google Drive (step 6).
+items and knowledge-save jobs. Sessions started with `/trevskills-scrum` are skipped.
+Step 7 runs the archive as a dry run only.
