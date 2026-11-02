@@ -1,6 +1,6 @@
 ---
 name: trevskills-transcript-mining
-description: Count process signals in headless scrum transcripts (turns, tokens and wall time per role, tool-call loops, repeated failing commands, re-reads, agents stuck before writing their .md, orchestrator retries), let Jev pick which outliers flailed, collect the user's scrum complaints from interactive chats, and write them all to transcript-signals.md for the scrum digest. Use for "transcript signals", "how did the scrum agents behave", or /trevskills-transcript-mining.
+description: Count process signals in headless scrum transcripts (turns, tokens and wall time per role, tool-call loops, repeated failing commands, re-reads, agents stuck before writing their .md (10+ turns, none writing a .md), orchestrator retries), let Jev pick which outliers flailed, collect the user's scrum complaints from interactive chats, and write them all to transcript-signals.md for the scrum digest. Use for "transcript signals", "how did the scrum agents behave", or /trevskills-transcript-mining.
 disable-model-invocation: true
 allowed-tools: Bash(python3 *), Read, Edit
 ---
