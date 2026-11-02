@@ -199,19 +199,28 @@ def rclone(*args):
 
 
 def archivable(days):
-    """[(path, stat)] of top-level interactive sessions at or before the marker and older than `days`, or None."""
+    """[(path, stat)] of top-level interactive sessions (and subagent transcripts of archived ones) at or before the marker and older than `days`, or None."""
     try:
         since = float(MARKER.read_text().strip())
     except (OSError, ValueError):
         return None
     cutoff = time.time() - days * 86400
     out = []
-    for p in sorted(ROOT.glob("*/*.jsonl")):  # top level only: subagents/ sit deeper
+    for p in sorted(ROOT.glob("*/*.jsonl")):  # top-level sessions
         try:
             st = p.stat()
         except OSError:
             continue
         if not p.is_symlink() and int(st.st_mtime) <= since and st.st_mtime < cutoff and candidate_line(p):
+            out.append((p, st))
+    # subagent transcripts, only once their session file is gone (already archived)
+    for p in sorted(ROOT.glob("*/*/subagents/*.jsonl")):
+        try:
+            st = p.stat()
+        except OSError:
+            continue
+        if (not p.is_symlink() and not p.parents[1].with_suffix(".jsonl").exists()
+                and int(st.st_mtime) <= since and st.st_mtime < cutoff):
             out.append((p, st))
     return out
 
@@ -265,7 +274,7 @@ def archive(a):
     if not found:
         print("mine: nothing to archive")
         return 0
-    dst = lambda p: f"{remote}/{p.parent.name}/{p.name}.xz"
+    dst = lambda p: f"{remote}/{p.relative_to(ROOT).as_posix()}.xz"
     if not a.apply:
         for p, _ in found:
             print(f"would archive {p} -> {dst(p)}")

@@ -101,6 +101,20 @@ class MineTest(unittest.TestCase):
         self.assertEqual(len(lines), 2)
         self.assertEqual(lines[1], f"mine: 1 to archive, {picked.stat().st_size} bytes (dry run)")
 
+    def test_archive_subagents_of_archived_session(self):
+        orphan = self.session("-work-proj/gone/subagents/agent-1.jsonl", 40)
+        self.session("-work-proj/kept.jsonl", 40)
+        self.session("-work-proj/kept/subagents/agent-2.jsonl", 40)
+        self.session("-work-proj/gone/subagents/agent-3.jsonl", 5)
+        self.set_marker(self.now)
+        r = self.run_mine("archive", "--apply")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        remote = self.drive / "claude-transcripts" / "-work-proj" / "gone" / "subagents" / "agent-1.jsonl.xz"
+        self.assertTrue(remote.exists())
+        self.assertFalse(orphan.exists())
+        self.assertTrue((self.root / "-work-proj/kept/subagents/agent-2.jsonl").exists())
+        self.assertTrue((self.root / "-work-proj/gone/subagents/agent-3.jsonl").exists())
+
     def test_archive_no_marker(self):
         p = self.session("-work-proj/aaaa.jsonl", 40)
         r = self.run_mine("archive", "--apply")
