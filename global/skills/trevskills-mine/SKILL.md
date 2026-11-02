@@ -42,7 +42,7 @@ Spawn exactly one Agent with `model: "opus"`, passing it the ranked lines and th
 > `SAVE | <fact> | <topic> | <session8>`
 >
 > Skip anything the chat itself finished, tracked or saved. Never propose edits to scrum agent
-> files or SKILL.md files (process fixes go through scrum's own retro). No line → return nothing.
+> files or SKILL.md files (the scrum digest owns process fixes; produce only BACKLOG and SAVE lines). No line → return nothing.
 
 Ignore any reply line that matches neither form.
 
@@ -92,3 +92,10 @@ python3 ~/.claude/skills/trevskills-mine/mine.py mark <epoch from the MARK line>
 End with three short lists: **Added** (backlog items and saves, each with its repo or file),
 **Skipped** (duplicates, with the line that already covers each), and **Reported** (repos without
 scrum, `MD CONTRADICTION`s). Then the number of sessions ranked and the new marker.
+
+## Weekly run
+
+Runs once a week unattended as `claude -p "/trevskills-mine"` (a LaunchAgent the user sets up). The
+`last-mined` marker keeps each run to sessions newer than the previous one. An unattended run uses
+no `--exclude`. The pass never proposes scrum agent or SKILL.md edits; it only produces backlog
+items and knowledge-save jobs. Sessions started with `/trevskills-scrum` are skipped.
