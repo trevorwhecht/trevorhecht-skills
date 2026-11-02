@@ -5,7 +5,7 @@ usage: transcript_signals.py [--projects-dir DIR] [--days 7] [--out FILE] [--top
 
 Reads Claude Code transcripts changed in the last N days. For each headless scrum session
 (orchestrator) and its subagents it counts turns, tokens, wall time, tool-call loops, repeated
-failing commands, re-reads, stuck agents and orchestrator retries, all in code. Outliers alone go
+failing commands, re-reads, stuck agents (scrum- role, no .md write, at least STUCK_MIN_TURNS turns) and orchestrator retries, all in code. Outliers alone go
 to Jev ("did this agent flail?"). Scrum complaints from interactive chats are collected too.
 Writes transcript-signals.md (default: <trevskills-scrum repo>/scrum/digests/). Stdlib only.
 """
@@ -22,6 +22,7 @@ RETRY_MIN = 2         # same (subagent_type, description) spawned by the orchest
 MEDIAN_X = 3          # turns/tokens/wall above this multiple of the role median...
 FLOOR = {"turns": 30, "tokens": 2_000_000, "wall_s": 900}  # ...and above this absolute floor
 MEDIAN_MIN_SESSIONS = 3
+STUCK_MIN_TURNS = 10  # scrum- session with no .md write is stuck only from this many turns
 COMPLAINT_CUT = 200
 FLAIL_Q = "this agent flailed: looped, retried the same failing step, or stalled without progress"
 COMPLAINT_Q = "Trevor is complaining about or correcting how the scrum pipeline behaves"
@@ -146,7 +147,7 @@ def session_stats(path, role=""):
         "loops": over(Counter((n, json.dumps(i, sort_keys=True)) for n, i in calls), LOOP_MIN),
         "failing_cmds": over(fails, FAIL_MIN),
         "rereads": over(Counter(str(i.get("file_path")) for n, i in calls if n == "Read"), REREAD_MIN),
-        "stuck": role.startswith("scrum-") and not any(
+        "stuck": role.startswith("scrum-") and len(usage) >= STUCK_MIN_TURNS and not any(
             n in ("Write", "Edit") and str(i.get("file_path", "")).endswith(".md") for n, i in calls),
         "retries": over(Counter((str(i.get("subagent_type")), str(i.get("description")))
                                 for n, i in calls if n in ("Agent", "Task")), RETRY_MIN)

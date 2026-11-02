@@ -75,7 +75,7 @@ class TestFind(Base):
         proj = self.projects / "-repo"
         write_jsonl(proj / "s1.jsonl", [scrum_cmd("start 017-foo"), asst("m1")])
         sub = proj / "s1" / "subagents"
-        write_jsonl(sub / "agent-a.jsonl", [asst("m2")])
+        write_jsonl(sub / "agent-a.jsonl", [asst(f"m{i}") for i in range(10)])
         (sub / "agent-a.meta.json").write_text(json.dumps({"agentType": "scrum-builder"}))
         write_jsonl(sub / "agent-b.jsonl", [asst("m3")])  # no meta -> unknown
         write_jsonl(proj / "s2.jsonl", [user_text("hello there"), asst("m4")])
@@ -139,14 +139,23 @@ class TestStats(Base):
         p = self.projects / "-r" / "a.jsonl"
         write_jsonl(p, [asst("m1", tools=[("w1", "Write", {"file_path": "/x/notes.txt", "content": ""}),
                                          ("a1", "Agent", {"subagent_type": "s", "description": "d"}),
-                                         ("a2", "Agent", {"subagent_type": "s", "description": "d"})])])
+                                         ("a2", "Agent", {"subagent_type": "s", "description": "d"})])]
+                    + [asst(f"x{i}") for i in range(9)])
         st = ts.session_stats(p, "scrum-builder")
         self.assertTrue(st["stuck"])
         self.assertEqual(st["retries"], 0)  # retries counted for the orchestrator only
-        write_jsonl(p, [asst("m1", tools=[("e1", "Edit", {"file_path": "/x/build.md"})])])
+        write_jsonl(p, [asst("m1", tools=[("e1", "Edit", {"file_path": "/x/build.md"})])]
+                    + [asst(f"x{i}") for i in range(9)])
         self.assertFalse(ts.session_stats(p, "scrum-builder")["stuck"])
-        write_jsonl(p, [asst("m1")])
+        write_jsonl(p, [asst(f"m{i}") for i in range(10)])
         self.assertFalse(ts.session_stats(p, "general-purpose")["stuck"])
+
+    def test_stuck_needs_min_turns(self):
+        p = self.projects / "-r" / "a.jsonl"
+        write_jsonl(p, [asst(f"m{i}") for i in range(9)])
+        self.assertFalse(ts.session_stats(p, "scrum-builder")["stuck"])
+        write_jsonl(p, [asst(f"m{i}") for i in range(10)])
+        self.assertTrue(ts.session_stats(p, "scrum-builder")["stuck"])
 
 
 def stat(role, path, turns=10, tokens=1000, wall_s=60, **sig):
@@ -200,7 +209,7 @@ class TestCli(Base):
         proj = self.projects / "-repo"
         write_jsonl(proj / "s1.jsonl", [scrum_cmd("start 017-foo"), asst("m1")])
         sub = proj / "s1" / "subagents"
-        write_jsonl(sub / "agent-a.jsonl", [asst("m2")])  # scrum- role, no .md write -> stuck
+        write_jsonl(sub / "agent-a.jsonl", [asst(f"m{i}") for i in range(10)])  # scrum- role, no .md write -> stuck
         (sub / "agent-a.meta.json").write_text(json.dumps({"agentType": "scrum-builder"}))
 
     def test_jev_fallback_when_missing(self):
