@@ -101,7 +101,7 @@ Dry run of the Drive archive (it changes nothing and never calls rclone):
 python3 ~/.claude/skills/trevskills-mine/mine.py archive
 ```
 
-It lists each interactive session at or before the marker and older than 30 days as
+It lists each interactive session (and the `subagents/` transcripts of sessions already archived) at or before the marker and older than 30 days as
 `would archive <path> -> gdrive:claude-transcripts/<project>/<id>.jsonl.xz`. Report its final
 `mine: ...` line as one more line after the summary.
 
