@@ -114,13 +114,13 @@ class TestStats(Base):
             # m1 appears twice (two content blocks of one message): counted once
             asst("m1", "2026-10-01T00:00:05Z", u, [("t1", "Grep", grep)]),
             asst("m1", "2026-10-01T00:00:06Z", u, [("t2", "Grep", grep)]),
-            asst("m2", usage=u, tools=[("t3", "Grep", grep)]),  # Grep x3 -> 1 loop
+            asst("m2", usage=u, tools=[(f"t{i}", "Grep", grep) for i in (3, 7, 8, 9)]),  # Grep x5 -> 1 loop
             asst("m3", usage=u, tools=[("t4", "Bash", {"command": "npm test"}),
                                        ("t5", "Bash", {"command": "npm test"}),
                                        ("t6", "Bash", {"command": "ls"})]),
             result("t4", True), result("t5", True), result("t6", True),  # npm test fails 2x; ls once
-            asst("m4", usage=u, tools=[(f"r{i}", "Read", {"file_path": "/a.md", "offset": i}) for i in range(4)]
-                 + [(f"q{i}", "Read", {"file_path": "/b.md"}) for i in range(3)]),
+            asst("m4", usage=u, tools=[(f"r{i}", "Read", {"file_path": "/a.md", "offset": i}) for i in range(6)]
+                 + [(f"q{i}", "Read", {"file_path": "/b.md"}) for i in range(5)]),
             asst("m5", usage=u, tools=[("a1", "Agent", {"subagent_type": "scrum-builder", "description": "Build"}),
                                        ("a2", "Agent", {"subagent_type": "scrum-builder", "description": "Build"}),
                                        ("a3", "Task", {"subagent_type": "scrum-check", "description": "Check"})]),
@@ -129,7 +129,7 @@ class TestStats(Base):
         p = self.projects / "-r" / "s.jsonl"
         write_jsonl(p, recs)
         st = ts.session_stats(p, "orchestrator")
-        # Read /b.md x3 is also a loop (identical input 3 times)
+        # Read /b.md x5 is also a loop (identical input 5 times)
         self.assertEqual({k: st[k] for k in ("turns", "tokens", "wall_s", "loops", "failing_cmds",
                                               "rereads", "stuck", "retries")},
                          {"turns": 6, "tokens": 600, "wall_s": 100, "loops": 2, "failing_cmds": 1,
@@ -160,8 +160,8 @@ class TestOutliers(Base):
     def test_outlier_rules(self):
         stats = [
             stat("scrum-builder", "b1"), stat("scrum-builder", "b2"), stat("scrum-builder", "b5"),
-            stat("scrum-builder", "b3", turns=21),  # median 10 -> 21 > 20: flagged by the median rule only
-            stat("scrum-builder", "b4", turns=20),  # exactly 2x: not flagged
+            stat("scrum-builder", "b3", turns=31),  # median 10 -> 31 > 30 and > floor 30: flagged by the median rule only
+            stat("scrum-builder", "b4", turns=30),  # exactly 3x and the floor: not flagged
             stat("scrum-check", "c1", tokens=1), stat("scrum-check", "c2", tokens=999999),  # 2 sessions: never median-flagged
             stat("scrum-review", "r1", loops=1),
             stat("scrum-review", "r2", stuck=True),
@@ -169,7 +169,30 @@ class TestOutliers(Base):
         ]
         self.assertEqual(sorted(o["path"] for o in ts.find_outliers(stats)), ["b3", "o1", "r1", "r2"])
         b3 = next(o for o in ts.find_outliers(stats) if o["path"] == "b3")
-        self.assertIn("turns>2x median", ts.signals_text(b3))
+        self.assertIn("turns>3x median", ts.signals_text(b3))
+
+    def test_median_needs_floor(self):
+        base = [stat("r", "a"), stat("r", "b"), stat("r", "c")]
+        # 25 turns: above 3x median (10) but under the 30 floor
+        self.assertEqual(ts.find_outliers(base + [stat("r", "d", turns=25)]), [])
+        o = ts.find_outliers(base + [stat("r", "d", turns=31)])
+        self.assertEqual([x["path"] for x in o], ["d"])
+        self.assertIn("turns>3x median", ts.signals_text(o[0]))
+
+    def _loop_stats(self, tools):
+        p = self.projects / "-r" / "l.jsonl"
+        write_jsonl(p, [asst("m1", tools=tools)])
+        return ts.session_stats(p, "scrum-builder")
+
+    def test_loop_below_min_not_flagged(self):
+        g = lambda n: [(f"t{i}", "Grep", {"pattern": "x"}) for i in range(n)]
+        self.assertEqual(self._loop_stats(g(4))["loops"], 0)
+        self.assertEqual(self._loop_stats(g(5))["loops"], 1)
+
+    def test_reread_below_min_not_flagged(self):
+        r = lambda n: [(f"t{i}", "Read", {"file_path": "/a.md", "offset": i}) for i in range(n)]
+        self.assertEqual(self._loop_stats(r(5))["rereads"], 0)
+        self.assertEqual(self._loop_stats(r(6))["rereads"], 1)
 
 
 class TestCli(Base):

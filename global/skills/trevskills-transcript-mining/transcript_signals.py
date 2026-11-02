@@ -15,11 +15,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 # Thresholds: starting values, tune here.
-LOOP_MIN = 3          # identical (tool, input) calls
+LOOP_MIN = 5          # identical (tool, input) calls
 FAIL_MIN = 2          # same Bash command failing
-REREAD_MIN = 4        # same file Read
+REREAD_MIN = 6        # same file Read
 RETRY_MIN = 2         # same (subagent_type, description) spawned by the orchestrator
-MEDIAN_X = 2          # turns/tokens/wall above this multiple of the role median
+MEDIAN_X = 3          # turns/tokens/wall above this multiple of the role median...
+FLOOR = {"turns": 30, "tokens": 2_000_000, "wall_s": 900}  # ...and above this absolute floor
 MEDIAN_MIN_SESSIONS = 3
 COMPLAINT_CUT = 200
 FLAIL_Q = "this agent flailed: looped, retried the same failing step, or stalled without progress"
@@ -164,7 +165,7 @@ def find_outliers(stats):
         if len(peers) >= MEDIAN_MIN_SESSIONS:
             for k in ("turns", "tokens", "wall_s"):
                 med = statistics.median(p[k] for p in peers)
-                if s[k] > MEDIAN_X * med:
+                if s[k] > MEDIAN_X * med and s[k] > FLOOR[k]:
                     big.append(k)
         if big or s["stuck"] or any(s[k] > 0 for k in SIGNALS):
             out.append(dict(s, big=big))
