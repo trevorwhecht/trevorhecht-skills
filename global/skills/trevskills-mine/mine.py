@@ -7,7 +7,7 @@ usage: mine.py candidates [--days 14] [--exclude S]   one condensed line per new
        mine.py mark <epoch>                            move the last-mined marker
 Headless (sdk-cli) sessions and subagent transcripts are skipped. Stdlib only.
 """
-import argparse, json, subprocess, sys, time
+import argparse, json, re, subprocess, sys, time
 from pathlib import Path
 
 ROOT = Path.home() / ".claude" / "projects"
@@ -66,6 +66,20 @@ def messages(path):
         yield role, t
 
 
+SCRUM_START = re.compile(r"^(<command-message>.*?</command-message>\s*)?(<command-name>)?/trevskills-scrum")
+
+
+def scrum_started(path):
+    """True when the first typed user record is a /trevskills-scrum prompt (headless job sessions)."""
+    for d in records(path):
+        m = d.get("message")
+        if isinstance(m, dict) and m.get("role") == "user" and not d.get("isMeta"):
+            t = " ".join(text_of(m.get("content")).split())
+            if t:
+                return bool(SCRUM_START.match(t))
+    return False
+
+
 def candidate_line(path):
     """Condensed one-line summary, or None for a headless session or one with no typed text."""
     cwd = day = entry = None
@@ -73,7 +87,7 @@ def candidate_line(path):
     for d in records(path):
         entry = entry or d.get("entrypoint")
         cwd = cwd or d.get("cwd")
-    if entry == "sdk-cli":
+    if entry == "sdk-cli" or scrum_started(path):
         return None
     for role, t, d in typed(path):
         day = day or str(d.get("timestamp", ""))[:10] or None
