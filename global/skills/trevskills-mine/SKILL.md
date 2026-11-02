@@ -93,9 +93,26 @@ End with three short lists: **Added** (backlog items and saves, each with its re
 **Skipped** (duplicates, with the line that already covers each), and **Reported** (repos without
 scrum, `MD CONTRADICTION`s). Then the number of sessions ranked and the new marker.
 
+## 7. Archive
+
+Dry run of the Drive archive (it changes nothing and never calls rclone):
+
+```bash
+python3 ~/.claude/skills/trevskills-mine/mine.py archive
+```
+
+It lists each interactive session at or before the marker and older than 30 days as
+`would archive <path> -> gdrive:claude-transcripts/<project>/<id>.jsonl.xz`. Report its final
+`mine: ...` line as one more line after the summary.
+
+`archive --apply` xz-compresses each listed session, uploads it with `rclone copyto`, and deletes the
+local `.jsonl` only after the remote copy's size and md5 (`rclone lsjson --hash`) match. It needs
+rclone with a `gdrive:` remote. It is not part of the weekly run yet: never pass `--apply` here.
+
 ## Weekly run
 
 Runs once a week unattended as `claude -p "/trevskills-mine"` (a LaunchAgent the user sets up). The
 `last-mined` marker keeps each run to sessions newer than the previous one. An unattended run uses
 no `--exclude`. The pass never proposes scrum agent or SKILL.md edits; it only produces backlog
 items and knowledge-save jobs. Sessions started with `/trevskills-scrum` are skipped.
+Step 7 runs the archive as a dry run only.

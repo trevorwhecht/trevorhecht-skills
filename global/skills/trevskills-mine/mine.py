@@ -5,9 +5,11 @@ usage: mine.py candidates [--days 14] [--exclude S]   one condensed line per new
        mine.py rank [--top 20] [--min 0.5] [--days 14] [--exclude S]   Jev-ranked lines, then "MARK <epoch>"
        mine.py text <path>                             typed text of one transcript, "<role>: <text>" lines
        mine.py mark <epoch>                            move the last-mined marker
+       mine.py archive [--days 30] [--remote R] [--apply]   mined sessions older than --days -> R as .jsonl.xz
+                                                       (dry run unless --apply; --apply needs rclone)
 Headless (sdk-cli) sessions and subagent transcripts are skipped. Stdlib only.
 """
-import argparse, json, re, subprocess, sys, time
+import argparse, hashlib, json, lzma, re, shutil, subprocess, sys, tempfile, time
 from pathlib import Path
 
 ROOT = Path.home() / ".claude" / "projects"
@@ -180,6 +182,107 @@ def mark(epoch):
     return 0
 
 
+def digest(path, algo, opener=open):
+    h = hashlib.new(algo)
+    with opener(path, "rb") as fh:
+        while chunk := fh.read(1 << 20):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def rclone(*args):
+    r = subprocess.run(["rclone", *args], capture_output=True, text=True)
+    if r.returncode:
+        err = r.stderr.strip().splitlines()
+        raise RuntimeError(f"rclone {args[0]} exit {r.returncode}" + (f": {err[-1]}" if err else ""))
+    return r.stdout
+
+
+def archivable(days):
+    """[(path, stat)] of top-level interactive sessions at or before the marker and older than `days`, or None."""
+    try:
+        since = float(MARKER.read_text().strip())
+    except (OSError, ValueError):
+        return None
+    cutoff = time.time() - days * 86400
+    out = []
+    for p in sorted(ROOT.glob("*/*.jsonl")):  # top level only: subagents/ sit deeper
+        try:
+            st = p.stat()
+        except OSError:
+            continue
+        if not p.is_symlink() and int(st.st_mtime) <= since and st.st_mtime < cutoff and candidate_line(p):
+            out.append((p, st))
+    return out
+
+
+def archive_one(p, st, dst, tmp):
+    """Compress, round-trip, upload, verify size+md5, then delete. Raises on any failed step."""
+    xz = Path(tmp) / "upload.jsonl.xz"
+    try:
+        with open(p, "rb") as src, lzma.open(xz, "wb") as out:
+            while chunk := src.read(1 << 20):
+                out.write(chunk)
+        if digest(xz, "sha256", lzma.open) != digest(p, "sha256"):
+            raise RuntimeError("xz round-trip hash differs")
+        size, md5 = xz.stat().st_size, digest(xz, "md5")
+        rclone("copyto", "--", str(xz), dst)
+        entries = json.loads(rclone("lsjson", "--hash", "--", dst))
+        if not isinstance(entries, list) or len(entries) != 1 or not isinstance(entries[0], dict):
+            raise RuntimeError(f"lsjson returned {len(entries) if isinstance(entries, list) else 'no'} entries")
+        e = entries[0]
+        if e.get("Size") != size:
+            raise RuntimeError(f"remote size {e.get('Size')} != local {size}")
+        remote_md5 = (e.get("Hashes") or {}).get("md5")
+        if not remote_md5 or str(remote_md5).lower() != md5:
+            raise RuntimeError(f"remote md5 {remote_md5 or 'missing'} != local {md5}")
+        now = p.stat()
+        if (now.st_mtime, now.st_size) != (st.st_mtime, st.st_size):
+            raise RuntimeError("source changed during the run")
+        p.unlink()
+    finally:
+        xz.unlink(missing_ok=True)
+
+
+def archive(a):
+    remote = a.remote.rstrip("/")
+    name = remote.partition(":")[0]
+    if a.apply:
+        if shutil.which("rclone") is None:
+            print("mine: rclone not found, nothing archived", file=sys.stderr)
+            return 1
+        try:
+            names = rclone("listremotes").split()
+        except (OSError, RuntimeError):
+            names = []
+        if ":" not in remote or remote.startswith("-") or f"{name}:" not in names:
+            print(f"mine: rclone remote {name}: not configured, nothing archived", file=sys.stderr)
+            return 1
+    found = archivable(a.days)
+    if found is None:
+        print("mine: no last-mined marker, nothing to archive")
+        return 0
+    if not found:
+        print("mine: nothing to archive")
+        return 0
+    dst = lambda p: f"{remote}/{p.parent.name}/{p.name}.xz"
+    if not a.apply:
+        for p, _ in found:
+            print(f"would archive {p} -> {dst(p)}")
+        print(f"mine: {len(found)} to archive, {sum(st.st_size for _, st in found)} bytes (dry run)")
+        return 0
+    rc = 0
+    with tempfile.TemporaryDirectory(prefix="mine-archive-") as tmp:
+        for p, st in found:
+            try:
+                archive_one(p, st, dst(p), tmp)
+                print(f"archived {p}")
+            except (OSError, RuntimeError, ValueError, lzma.LZMAError) as e:
+                print(f"kept {p}: {e}")
+                rc = 1
+    return rc
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -192,6 +295,10 @@ def main():
             s.add_argument("--min", type=float, default=0.5)
     sub.add_parser("text").add_argument("path", type=Path)
     sub.add_parser("mark").add_argument("epoch", type=lambda v: int(float(v)))
+    s = sub.add_parser("archive")
+    s.add_argument("--days", type=int, default=30)
+    s.add_argument("--remote", default="gdrive:claude-transcripts")
+    s.add_argument("--apply", action="store_true")
     a = p.parse_args()
     if a.cmd == "candidates":
         for _, line in find(a.days, a.exclude):
@@ -201,6 +308,8 @@ def main():
         return rank(a)
     if a.cmd == "text":
         return text(a.path)
+    if a.cmd == "archive":
+        return archive(a)
     return mark(a.epoch)
 
 
