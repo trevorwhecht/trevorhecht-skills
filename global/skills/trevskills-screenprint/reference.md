@@ -717,13 +717,47 @@ Ink mixing structure (Trevor, 2026-10-27):
 - **Plastisol** (future): no pigment mixing. Each colour is ready to print (pigment + base already in it);
   a mix is colours mixed with colours.
 
+Press setup and separations (Trevor, 2026-10-25):
+- **Wet on wet**: on the auto, colours print wet on wet from the **smallest area first** up to the largest
+  (tiny black detail first). Any ink can do it; thin ink (LSA) is easiest. Add **at least one choke** so wet
+  colours never meet, and ideally the other colours don't touch.
+- **Inner-only offset** for LSA black: about 0.006–0.01 in (by line thinness), offset inward only, then
+  pathfinder; never outward. A choke is a negative offset.
+- **Sequence 1, LSA black and white** (AP-67J, water-based, dark shirt): H1 LSA black, inner offset only;
+  H2 white UB, 200–230 mesh, 0.01–0.016 in choke, wet on wet; H3 flash; H4 cool-down; H5 highlight white,
+  160 mesh, no choke or offset.
+- **Sequence 2, white plus a colour** (AP-67J, dark shirt): H1 white UB, 0.008–0.012 in choke; H2 flash;
+  H3 cool-down; H4 the colour (if it has less area than the white); H5 highlight white, wet on wet.
+- The AP-67J flash can sit at **any station**. Printing head 1 twice by indexing all the way round (every
+  station indexes) is possible but slow, so it is avoided. The press configuration is set before the film plan.
+- **Flashback / shuttle flash** (Workhorse, Lawson autos): print-flash-print at one station, so two flashed
+  layers of white leave that head. Slower to run, much faster to set up.
+- **Manual**: flashing costs little, so always choke. White only: the same white screen does
+  print-flash-print. White plus a second colour: the white screen does print-flash-print-flash, then the
+  colour prints once over it and pops.
+- **Ganging**: at most **2 designs** (3 in a pinch); more means taping off unused designs. Art stays inside
+  the **inner 17 in**; registration marks may go past it.
+- **Light shirts never get an underbase.**
+- **Ink facts** (Trevor, 2026-11-03; these replace the earlier "HSA = OW Stretch" lines above):
+  - HSA is Matsui's water-based high-solid line, not OW Stretch. LSA is Matsui 301 RC. LSA and HSA are
+    water-based only.
+  - Black in a design always prints as **LSA black** and goes first (it soaks in and stays soft and
+    breathable). The one exception is high-density black.
+  - Water-based stack on a dark shirt: LSA black, white underbase, second white, then the colours.
+  - The water-based white is always **Magna white** (Trevor prefers how it feels; other shops use Matsui
+    OW Stretch white).
+  - Whether a print needs an underbase depends on how dark the garment is and on the ink type.
+  - Underbase choke starts at 0.008 in and is adjusted per design: too much choke leaves the top colour
+    with no underbase under it.
+
 ### Still open
 
 Sources disagree or the answer is shop-specific. Ask; store answers as config, not constants.
 
 **Equipment inventory**
 1. Manual max print area and frame size.
-2. Does the AP-67J flash sit in a head (assumed yes) or in a flash port between heads?
+2. ~~Does the AP-67J flash sit in a head (assumed yes) or in a flash port between heads?~~ Answered
+   (Trevor, 2026-10-25): the flash takes a head and can sit at any station.
 3. "Black Body 8 ft": BBC Forced Air FA-244 (forced air) or Big Buddy III (infrared)? Belt width and
    heated chamber length of each dryer if the catalog row is wrong.
 4. Compressor CFM / hp / tank; does it limit running the auto and a flash together?
