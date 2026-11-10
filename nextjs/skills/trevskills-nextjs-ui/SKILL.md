@@ -26,7 +26,7 @@ Only in a shadcn project (it has `components.json`), invoke both before writing 
 - `shadcn` — live project context, component rules, CLI workflow
 - `nextjs-shadcn` — page structure, client boundaries, Next.js data patterns
 
-A HeroUI project has no sub-skill; read the component's props in `node_modules/@heroui/` (or its theme in `@heroui/theme`) before overriding a default.
+A HeroUI project has no sub-skill; read `references/heroui.md`, then the component's props in `node_modules/@heroui/` before overriding a default.
 
 ## Core Rules
 
@@ -57,6 +57,7 @@ A HeroUI project has no sub-skill; read the component's props in `node_modules/@
 
 | File | Covers | Headings |
 |---|---|---|
+| `references/heroui.md` | HeroUI 2 quirks: Input variants and adornments, Select/Autocomplete, Modal placement, scroll and full bleed, theme tokens | `## Input`, `## Select and Autocomplete`, `## Modal`, `## Theming` |
 | `references/tables.md` | Data tables: scroll box, minimums, hugging below 1024px, alignment, money and inline-edit cells, one shared kit and row height | `### Tables`, `#### The ladder — when the minimum exceeds the container`, `#### Phones and iPads: columns hug their content`, `#### Long text in a narrow cell: wrap to 2 lines, then ellipsis`, `#### When does it "not fit"? — concrete minimums`, `#### Alignment — left, always`, ``#### Currency: the `$` lines up with the heading``, `#### In-cell buttons need their own gutter`, `#### Mobile: tables go edge to edge`, `#### One shared table kit, one compact row height`, `#### Other rules`, `#### Inline-edit number cell (edit-in-place in a table)` |
 | `references/mobile.md` | Phones and iPads: layout findings, viewport hook, review widths, touch, keyboard, zoom | `## Mobile UI`, `### Mobile layout findings`, `#### One viewport hook`, `#### Review widths`, `### Touch Targets`, `### Keyboard Behavior`, `### Scroll Behavior`, `### Input Font Size`, `### Hover-Only Interactions`, `### Edge Spacing` |
 | `references/modals.md` | Placement under the nav, shared class strings, safe areas, background scroll | `### Modal Placement — centred when short, pinned under the nav when tall`, `### Modals and Safe Areas` |
