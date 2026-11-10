@@ -158,7 +158,7 @@ production has rows dev does not. When in doubt, expand-and-contract.
 **If any flagged statement would touch a non-zero dev row count — or could plausibly touch rows in production — rewrite the migration as expand-and-contract instead:**
 
 1. **Expand** — add the new column as nullable (or with a default). Deploy. Nothing breaks; old code still works.
-2. **Backfill** — a separate migration or script that copies data into the new shape, written to be safely re-runnable.
+2. **Backfill** — a separate migration (schema: `/trevskills-migrate`) or a data script (`/trevskills-datafix`) that copies data into the new shape, written to be safely re-runnable.
 3. **Migrate the code** — application reads and writes the new column. Deploy.
 4. **Contract** — a later migration, once the new column is proven in production, that drops the old one.
 
