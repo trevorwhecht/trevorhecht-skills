@@ -5,7 +5,8 @@
 # system-data bloat with sizes, (3) large local files that are candidates
 # for iCloud offload. Every section only reports; you decide what to act on.
 #
-# Usage: deep-audit.sh [security|malware|extensions|systemdata|largefiles|all]   (default: all)
+# Usage: deep-audit.sh [security|malware|extensions|systemdata|space|orphans|unusedapps|largefiles|storage|all]   (default: all)
+#   storage = every disk-space check (space map, system data, orphans, unused apps, large files)
 
 set -uo pipefail
 HOME_DIR="${HOME}"
@@ -89,9 +90,11 @@ audit_systemdata() {
     [[ -e "$path" ]] && printf '  %-40s %6s  %s\n' "$name" "$(sz "$path")" "$path"
   done
 
-  echo "-- Time Machine local snapshots (often the biggest hidden 'System Data') --"
-  local snaps; snaps="$(tmutil listlocalsnapshots / 2>/dev/null | grep -c com.apple)"
-  echo "     $snaps local snapshot(s). Thin with: sudo tmutil thinlocalsnapshots / 999999999999 4"
+  echo "-- Local snapshots (often the biggest hidden 'System Data') --"
+  local list tm os; list="$(tmutil listlocalsnapshots / 2>/dev/null)"
+  tm="$(grep -c 'com.apple.TimeMachine' <<<"$list")"; os="$(grep -c 'com.apple.os.update' <<<"$list")"
+  echo "     $tm Time Machine snapshot(s). Thin with: sudo tmutil thinlocalsnapshots / 999999999999 4"
+  echo "     $os macOS-update snapshot(s). macOS manages these; thinning does NOT remove them."
 
   echo "-- Big .dmg/.pkg installers you can trash after install --"
   find "${HOME_DIR}/Downloads" "${HOME_DIR}/Desktop" -maxdepth 2 -type f \( -iname "*.dmg" -o -iname "*.pkg" \) 2>/dev/null \
@@ -118,6 +121,80 @@ audit_largefiles() {
   echo "     trevskills-mac-cleanup.sh offload evict \"<path>\"     (keeps it in iCloud, frees local copy)"
   echo "  To move a local file INTO iCloud Drive then free the local copy:"
   echo "     trevskills-mac-cleanup.sh offload move \"<path>\""
+}
+
+audit_space() {
+  hr "WHERE THE SPACE IS (biggest folders, read-only)"
+  local d
+  for d in "$HOME_DIR" "$HOME_DIR/Library" "$HOME_DIR/Library/Application Support" "$HOME_DIR/Library/Containers" /Applications /opt/homebrew; do
+    [[ -d "$d" ]] || continue
+    echo "  [$d]"
+    du -xhd1 "$d" 2>/dev/null | sort -rh | sed -n '2,9p' | sed 's/^/     /'
+  done
+  echo "  Pointers: Library/Messages + com.apple.MobileSMS shrink via Messages → Keep Messages;"
+  echo "  ~/.claude/projects is chat history (kept on purpose); vm_bundles = Claude desktop's VM."
+}
+
+audit_orphans() {
+  hr "LEFTOVER DATA FROM UNINSTALLED APPS (verify, then Trash what you approve)"
+  # ponytail: name-matching heuristic (folder name vs installed app names/bundle ids/CLI
+  # commands); it can miss renamed vendors or flag a CLI tool's data. It only reports.
+  python3 -I - "$HOME_DIR" <<'PY'
+import glob, json, os, plistlib, re, shutil, subprocess, sys
+home = sys.argv[1]
+norm = lambda s: re.sub(r"[^a-z0-9]", "", s.lower())
+known = set()
+for app in glob.glob("/Applications/*.app") + glob.glob("/Applications/*/*.app") + glob.glob(home + "/Applications/*.app") + glob.glob("/System/Applications/*.app"):
+    known.add(norm(os.path.basename(app)[:-4]))
+    try:
+        with open(app + "/Contents/Info.plist", "rb") as f: p = plistlib.load(f)
+        for k in ("CFBundleIdentifier", "CFBundleName"):
+            if p.get(k): known.add(norm(p[k]))
+    except Exception: pass
+known.discard("")
+def installed(name):
+    n = norm(name)
+    if len(n) < 3: return True
+    if shutil.which(name.lstrip(".")): return True
+    vendor = re.match(r"(?:com|org|io|net)\.([^.]+)\.", name)  # com.adobe.dunamis → any Adobe app
+    if vendor and any(norm(vendor.group(1)) in k for k in known): return True
+    return any(n in k or (len(k) > 3 and k in n) for k in known)
+GENERIC = {"Caches", "CrashReporter", ".cache", ".config", ".local", ".npm", ".Trash", ".ssh", ".gnupg", ".claude", ".zsh_sessions", ".oh-my-zsh", ".nvm", ".cargo", ".rustup", ".pyenv", ".docker", ".vscode"}
+cands = [os.path.join(home, "Library/Application Support", d) for d in os.listdir(os.path.join(home, "Library/Application Support"))
+         if not d.startswith(("com.apple", "Apple", ".")) and d not in GENERIC]
+cands += [os.path.join(home, d) for d in os.listdir(home) if d.startswith(".") and d not in GENERIC and os.path.isdir(os.path.join(home, d))]
+rows = []
+for c in cands:
+    if installed(os.path.basename(c)): continue
+    kb = int(subprocess.run(["du", "-sk", c], capture_output=True, text=True).stdout.split()[0] or 0)
+    if kb >= 100 * 1024: rows.append((kb, c))
+for kb, c in sorted(rows, reverse=True):
+    print(f"  {kb/1048576:6.1f}G  {c}")
+if not rows: print("  (none over 100 MB)")
+print("-- Chrome native-messaging hosts pointing at a missing app --")
+hit = 0
+for f in glob.glob(home + "/Library/Application Support/Google/Chrome/NativeMessagingHosts/*.json"):
+    try: path = json.load(open(f)).get("path", "")
+    except Exception: continue
+    if path and not os.path.exists(path): print(f"  >>> {f}  ->  {path}"); hit = 1
+if not hit: print("  (none)")
+PY
+}
+
+audit_unusedapps() {
+  hr "APPS NOT OPENED IN ${UNUSED_DAYS:-180}+ DAYS (reinstallable; you decide)"
+  local app last days now; now="$(date +%s)"
+  for app in /Applications/*.app; do
+    [[ "$(defaults read "$app/Contents/Info" CFBundleIdentifier 2>/dev/null)" == com.apple.* ]] && continue
+    last="$(mdls -name kMDItemLastUsedDate -raw "$app" 2>/dev/null)"
+    if [[ "$last" == "(null)" || -z "$last" ]]; then days="?"
+    else days=$(( (now - $(date -j -f '%Y-%m-%d %H:%M:%S %z' "$last" +%s 2>/dev/null || echo "$now")) / 86400 ))
+         [[ "$days" -lt "${UNUSED_DAYS:-180}" ]] && continue
+    fi
+    printf '  %6s  last used: %-6s  %s\n' "$(sz "$app")" "$days" "$app"
+  done | sort -rh
+  echo "  '?' = macOS has no open date (never opened, or only launched in the background, e.g. Karabiner). Check before removing."
+  echo "  Each app's data in ~/Library/Application Support goes with it; see 'audit orphans' after."
 }
 
 audit_extensions() {
@@ -243,7 +320,11 @@ case "${1:-all}" in
   largefiles) audit_largefiles ;;
   malware)    audit_malware ;;
   extensions) audit_extensions ;;
-  all)        audit_security; audit_malware; audit_extensions; audit_systemdata; audit_largefiles ;;
-  *) echo "Usage: deep-audit.sh [security|malware|extensions|systemdata|largefiles|all]"; exit 1 ;;
+  space)      audit_space ;;
+  orphans)    audit_orphans ;;
+  unusedapps) audit_unusedapps ;;
+  storage)    audit_space; audit_systemdata; audit_orphans; audit_unusedapps; audit_largefiles ;;
+  all)        audit_security; audit_malware; audit_extensions; audit_systemdata; audit_orphans; audit_unusedapps; audit_largefiles ;;
+  *) echo "Usage: deep-audit.sh [security|malware|extensions|systemdata|space|orphans|unusedapps|largefiles|storage|all]"; exit 1 ;;
 esac
 echo; echo "(Audit complete — nothing was changed.)"

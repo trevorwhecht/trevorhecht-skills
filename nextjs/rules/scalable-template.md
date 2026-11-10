@@ -1,4 +1,10 @@
 ---
+paths:
+  - "**/*.tsx"
+  - "**/*.jsx"
+  - "**/globals.css"
+  - "**/tailwind.config.*"
+  - "**/next.config.*"
 description: Scalable and reusable template standards — applies when building or contributing to template projects
 ---
 

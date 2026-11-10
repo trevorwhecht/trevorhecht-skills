@@ -16,6 +16,8 @@ Every project should be as lightweight, fast, and cheap to run as possible. Thes
 // left incomplete, and ideally what the ideal solution looks like.
 ```
 - `priority` is 1–10 (10 = must fix soon, 1 = nice to have)
+- Always `TODO[priority]:`, never `TODO(tag)` or a bare `TODO:`, even where older code nearby uses them; the title may be a kebab-case slug (`TODO[3]: separation-ink-prefs — ...`)
+- A doc that lists unbuilt work names the files and the TODO titles, as `Not built (TODOs in <files>): <title>, <title>`
 - Run `/trevskills-todo-report` at any time for a ranked list across the project
 
 **Flexible TODO input:**

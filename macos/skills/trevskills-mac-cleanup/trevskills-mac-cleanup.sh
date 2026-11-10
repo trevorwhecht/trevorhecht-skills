@@ -15,12 +15,12 @@
 #   trevskills-mac-cleanup.sh clean [cats...] --apply
 #   trevskills-mac-cleanup.sh assets scan [dirs...]        # list scoped "Asset" export files
 #   trevskills-mac-cleanup.sh assets trash [dirs...] --apply  # move them to Trash
+#   trevskills-mac-cleanup.sh junk scan|trash [dirs...] [--apply]  # installers, partial downloads,
+#                                       # unzipped zips, same-folder duplicates
 #   trevskills-mac-cleanup.sh processes            # read-only: uptime/swap, top CPU+mem, malware flag
 #   trevskills-mac-cleanup.sh processes quit [--apply]  # quit safe background helpers only
 #   trevskills-mac-cleanup.sh processes reset [--apply] # reset stuck Apple helpers (auto-relaunch)
 #   trevskills-mac-cleanup.sh report [baseline_free_kb] # GB freed + memory + maintenance plan
-#   trevskills-mac-cleanup.sh worktrees [--apply]  # remove scrum worktrees of done/aborted jobs
-#   trevskills-mac-cleanup.sh transcripts [--apply] # gzip-archive Claude transcripts untouched 30+ days
 #
 # Categories: app-caches dev-caches adobe-caches messages-cache logs system-caches
 # "safe set" (default) = app-caches dev-caches adobe-caches messages-cache logs
@@ -110,8 +110,6 @@ cat_app_caches() {
 
 cat_dev_caches() {
   echo "== dev-caches =="
-  purge_dir "${HOME_DIR}/Library/Caches/ms-playwright"
-  purge_dir "${HOME_DIR}/Library/Caches/ms-playwright-mcp"
   purge_dir "${HOME_DIR}/Library/Caches/node-gyp"
   purge_dir "${HOME_DIR}/Library/Caches/next-swc"
   purge_dir "${HOME_DIR}/Library/Caches/typescript"
@@ -220,15 +218,55 @@ asset_find() {
     -type f -iregex '.*/[Aa]sset( [0-9]+)?(-[0-9]+)?(@[0-9]+[a-z]?)?( \([0-9]+\))?\.(ai|eps|psd|pdf|svg|png|jpg|jpeg|tif|tiff)' -print 2>/dev/null
 }
 
+# --- JUNK: re-downloadable / redundant user files -------------------------
+# Skips app data (dot-dirs), ~/Library, ~/Developer (repos), app bundles, Photos.
+JUNK_PRUNE=( \( -name '.*' -o -path "${HOME_DIR}/Library" -o -path "${HOME_DIR}/Developer" -o -name '*.photoslibrary' -o -name '*.app' -o -name node_modules \) -prune -o )
+
+# Exact duplicates ≥1 MB as "same|cross<TAB>keeper<TAB>dupe". Keeper = shortest
+# path, so "x.pdf" beats "x (1).pdf" / "x-1.pdf". Cloud-only files are skipped:
+# hashing one would download it. Sizes first, so only size-collisions get hashed.
+dupe_pairs() {
+  local dirs=("$@"); [[ ${#dirs[@]} -eq 0 ]] && dirs=("${HOME_DIR}")
+  find "${dirs[@]}" "${JUNK_PRUNE[@]}" -type f -size +1M -print0 2>/dev/null \
+    | xargs -0 stat -f '%z%t%b%t%N' 2>/dev/null \
+    | awk -F'\t' '$2>0 {n[$1]++; z[NR]=$1; f[NR]=$3} END{for(i=1;i<=NR;i++) if(n[z[i]]>1) printf "%s%c", f[i], 0}' \
+    | xargs -0 shasum 2>/dev/null \
+    | awk '{h=substr($0,1,40); f=substr($0,43); print h "\t" length(f) "\t" f}' | sort -t$'\t' -k1,1 -k2,2n \
+    | awk -F'\t' 'h!=$1{h=$1; keep=$3; kd=keep; sub(/\/[^\/]*$/,"",kd); next}
+                  {d=$3; sub(/\/[^\/]*$/,"",d); print (d==kd?"same":"cross") "\t" keep "\t" $3}'
+}
+
+# Auto-trash set: installers, partial downloads, a .zip whose unzipped folder
+# sits beside it, and duplicates that share a folder with their keeper.
+# Cross-folder dupes are NOT here — an .ai can link a placed image by path.
+junk_find() {
+  find "${@:-$HOME_DIR}" "${JUNK_PRUNE[@]}" -type f \( -iname '*.dmg' -o -iname '*.pkg' -o -iname '*.mpkg' \
+    -o -iname '*.iso' -o -iname '*.xip' -o -iname '*.crdownload' -o -iname '*.part' -o -iname '*.zip' \) -print 2>/dev/null \
+    | while IFS= read -r f; do
+        is_dataless "$f" && continue  # cloud-only: trashing frees nothing, just syncs a removal
+        case "$f" in *.[zZ][iI][pP]) [[ -d "${f%.*}" ]] && echo "$f" ;; *) echo "$f" ;; esac
+      done
+  dupe_pairs "$@" | awk -F'\t' '$1=="same"{print $3}'
+}
+
+# Report-only: same file in two different folders. User decides.
+dupes_cross() {
+  echo; echo "===== CROSS-FOLDER DUPLICATES (listed only — never auto-trashed) ====="
+  dupe_pairs "$@" | awk -F'\t' '$1=="cross"{n++; print "   keep: " $2 "\n   dupe: " $3 "\n"} END{if(!n) print "   none"}'
+}
+
+# assets_scan/assets_trash run against $FIND_FN (asset_find or junk_find).
+FIND_FN=asset_find; LABEL="SCOPED 'Asset' EXPORT"
+
 # Format bytes. Used for BOTH per-file and total so they can never disagree.
-human() { awk -v s="${1:-0}" 'BEGIN{u="B"; if(s>1073741824){s/=1073741824;u="G"}else if(s>1048576){s/=1048576;u="M"}else if(s>1024){s/=1024;u="K"}; printf "%.1f%s", s, u}'; }
+human_bytes() { awk -v s="${1:-0}" 'BEGIN{u="B"; if(s>1073741824){s/=1073741824;u="G"}else if(s>1048576){s/=1048576;u="M"}else if(s>1024){s/=1024;u="K"}; printf "%.1f%s", s, u}'; }
 
 # Dataless (evicted) iCloud file? `du` reports 0 blocks for these because the
 # bytes live in the cloud, not on disk — st_size is still the true size.
 is_dataless() { [[ "$(stat -f%b "$1" 2>/dev/null || echo 1)" -eq 0 ]]; }
 
 assets_scan() {
-  echo "===== SCOPED 'Asset' EXPORT FILES (no changes) ====="
+  echo "===== ${LABEL} FILES (no changes) ====="
   local total=0 cloud=0 n=0 f sz tag
   while IFS= read -r f; do
     is_protected_asset "$f" && { printf '   [SKIP protected] %s\n' "$f"; continue; }
@@ -237,9 +275,9 @@ assets_scan() {
     # of real exports look like they were worth nothing to reclaim.
     sz=$(stat -f%z "$f" 2>/dev/null || echo 0); total=$((total+sz)); n=$((n+1))
     tag=""; if is_dataless "$f"; then tag="  [cloud-only]"; cloud=$((cloud+1)); fi
-    printf '   %8s  %s%s\n' "$(human "$sz")" "$f" "$tag"
-  done < <(asset_find "$@")
-  echo; printf '   %d files, ~%s total\n' "$n" "$(human "$total")"
+    printf '   %8s  %s%s\n' "$(human_bytes "$sz")" "$f" "$tag"
+  done < <("$FIND_FN" "$@")
+  echo; printf '   %d files, ~%s total\n' "$n" "$(human_bytes "$total")"
   if [[ "$cloud" -gt 0 ]]; then
     printf '   %d of them are [cloud-only] — trashing frees NO local disk space,\n' "$cloud"
     echo   '   it only removes the files (and syncs that removal to your other devices).'
@@ -250,7 +288,7 @@ assets_trash() {
   local apply=0 dirs=()
   for a in "$@"; do [[ "$a" == "--apply" ]] && apply=1 || dirs+=("$a"); done
   mkdir -p "$TRASH"
-  echo "===== MOVE SCOPED 'Asset' FILES TO TRASH ====="
+  echo "===== MOVE ${LABEL} FILES TO TRASH ====="
   [[ "$apply" == "1" ]] && echo ">>> APPLY — moving to $TRASH" || echo ">>> DRY RUN — add --apply to move"
   local f base dest
   while IFS= read -r f; do
@@ -259,7 +297,7 @@ assets_trash() {
     while [[ -e "$dest" ]]; do dest="${TRASH}/$(basename "${base%.*}")-dup.${base##*.}"; base="$(basename "$dest")"; done
     if [[ "$apply" == "1" ]]; then mv -- "$f" "$dest" && printf '   [trashed] %s\n' "$f"
     else printf '   [would trash] %s\n' "$f"; fi
-  done < <(asset_find ${dirs[@]+"${dirs[@]}"})
+  done < <("$FIND_FN" ${dirs[@]+"${dirs[@]}"})
 }
 
 # --- iCloud offload: free local space, keep file in the cloud --------------
@@ -462,13 +500,14 @@ proc_reset() {
 # Sets globals MEM_UP_DAYS / MEM_SWAP_MB so callers can reuse the numbers.
 MEM_UP_DAYS=0; MEM_SWAP_MB=0
 mem_summary() {
-  local comp_mb
+  local comp_mb wired_mb
   MEM_UP_DAYS=$(uptime | grep -oE 'up [0-9]+ day' | grep -oE '[0-9]+' | head -1); MEM_UP_DAYS=${MEM_UP_DAYS:-0}
   MEM_SWAP_MB=$(sysctl -n vm.swapusage 2>/dev/null | grep -oE 'used = [0-9.]+M' | grep -oE '[0-9.]+' | head -1)
   MEM_SWAP_MB=${MEM_SWAP_MB:-0}
   comp_mb=$(vm_stat | awk '/occupied by compressor/{gsub(/[^0-9]/,"",$NF); printf "%d", $NF*16384/1048576}')
-  printf '  Uptime: %s day(s)   Swap used: %s MB   Compressed RAM: %s MB\n' \
-    "$MEM_UP_DAYS" "${MEM_SWAP_MB:-?}" "${comp_mb:-?}"
+  wired_mb=$(vm_stat | awk '/Pages wired down/{gsub(/[^0-9]/,"",$NF); printf "%d", $NF*16384/1048576}')
+  printf '  Uptime: %s day(s)   Swap used: %s MB   Compressed RAM: %s MB   Wired: %s MB\n' \
+    "$MEM_UP_DAYS" "${MEM_SWAP_MB:-?}" "${comp_mb:-?}" "${wired_mb:-?}"
   if [[ "$MEM_UP_DAYS" -ge 7 ]] || [[ "$(printf '%.0f' "${MEM_SWAP_MB:-0}")" -ge 2048 ]]; then
     echo "  >>> RESTART RECOMMENDED — high uptime and/or heavy swap. A reboot clears"
     echo "      all swap and compressed memory instantly: the single biggest speed win."
@@ -494,6 +533,8 @@ proc_report() {
       awk -v n="$a" '{s+=$1;c++} END{if(c) printf "  %-16s %3d procs  ~%d MB\n", n, c, s/1024}'
   done
   echo
+  ollama_unload
+  echo
   echo "== Malicious check: running binaries with NO valid Developer ID / Apple signature =="
   echo "   (Apple system paths are trusted; everything else must be signed. Flags = investigate.)"
   local flagged=0 p sig
@@ -512,6 +553,27 @@ proc_report() {
   echo
   echo "Next: './trevskills-mac-cleanup.sh processes quit'   (dry-run of safe background quits)"
   echo "      './trevskills-mac-cleanup.sh processes reset'  (dry-run of stuck Apple helper resets)"
+}
+
+# Ollama models sit in GPU-wired memory, so they never show in RSS above —
+# `ps` reports ~150 MB for a runner holding a 7 GB model. Unloading is a reset,
+# not a quit: the model reloads (a few seconds) on the next request. Any
+# in-flight generation is cut off, hence dry-run by default.
+ollama_unload() {
+  command -v ollama >/dev/null 2>&1 || return 0
+  local apply=0; [[ "${1:-}" == "--apply" ]] && apply=1
+  local models; models="$(ollama ps 2>/dev/null | awk 'NR>1 && $1!=""{print $1" "$3" "$4}')"
+  echo "== Ollama models loaded in RAM (GPU-wired, not in RSS) =="
+  [[ -z "$models" ]] && { echo "   (none loaded)"; return 0; }
+  local name size unit
+  while read -r name size unit; do
+    if [[ "$apply" == "1" ]]; then
+      ollama stop "$name" >/dev/null 2>&1 && echo "   unloaded: $name ($size $unit)"
+    else
+      echo "   would unload: $name ($size $unit)"
+    fi
+  done <<< "$models"
+  [[ "$apply" == "0" ]] && echo "   './trevskills-mac-cleanup.sh processes ollama --apply' to free it (reloads on next use)."
 }
 
 proc_quit() {
@@ -566,6 +628,9 @@ do_report() {
   if [[ -n "$baseline" ]] && [[ "$baseline" =~ ^[0-9]+$ ]]; then
     printf '  Freed THIS session: %s GB  (before: %s GB)\n' "$(gb $((cur-baseline)))" "$(gb "$baseline")"
   fi
+  local trash_kb; trash_kb="$(du -sk "$TRASH" 2>/dev/null | awk '{print $1}')"
+  [[ "${trash_kb:-0}" -gt 102400 ]] && \
+    printf '  Trash holds %s GB — NOT free until you empty it (Finder → Empty Trash).\n' "$(gb "$trash_kb")"
 
   local rec_freq rec_note days=0
   if [[ -f "$STATE_FILE" ]]; then
@@ -605,162 +670,18 @@ do_report() {
   echo "(Baseline saved. Re-run 'report' anytime for an updated picture.)"
 }
 
-# --- worktrees: stale scrum worktree sweep ----------------------------------
-# Reads the scrum registry (same file board.projects() reads) and lists
-# <repo>/.claude/worktrees/scrum-<id> for jobs whose board stage is done or
-# aborted. --apply runs `git worktree remove --force` and `git branch -d`
-# (never -D, so an unmerged branch is kept). Anything unreadable is skipped
-# with a note, never treated as stale.
-stale_worktrees() {
-  local apply=0; [[ "${1:-}" == "--apply" ]] && apply=1
-  python3 - "$apply" <<'PY'
-import json, os, subprocess, sys
-apply = sys.argv[1] == "1"
-print(">>> APPLY — removing stale scrum worktrees" if apply else ">>> DRY RUN — nothing will be removed (add --apply)")
-reg = os.environ.get("SCRUM_REGISTRY") or os.path.expanduser("~/.claude/trevskills-scrum/projects.json")
-try:
-    with open(reg) as f:
-        repos = json.load(f)
-    if not isinstance(repos, list):
-        raise ValueError("not a JSON list")
-except (OSError, ValueError) as e:
-    print(f"   note: scrum registry {reg} unreadable ({e}); skipped")
-    sys.exit(0)
-total_kb = n = 0
-for repo in repos:
-    if not isinstance(repo, str) or not os.path.isdir(os.path.join(repo, "scrum")):
-        continue
-    wt_root = os.path.join(repo, ".claude", "worktrees")
-    if not os.path.isdir(wt_root):
-        print(f"   note: {repo} has no .claude/worktrees; skipped")
-        continue
-    board = os.path.join(repo, "scrum", "board.json")
-    try:
-        with open(board) as f:
-            jobs = json.load(f)["jobs"]
-        if not isinstance(jobs, list):
-            raise ValueError("jobs is not a list")
-    except (OSError, ValueError, KeyError, TypeError) as e:
-        print(f"   note: {board} unreadable or malformed ({e}); skipped")
-        continue
-    for job in jobs:
-        if not isinstance(job, dict) or job.get("stage") not in ("done", "aborted"):
-            continue
-        jid = job.get("id")
-        # The id becomes a path part and a branch name: refuse anything odd.
-        if not isinstance(jid, str) or not jid or "/" in jid or jid.startswith((".", "-")):
-            continue
-        path = os.path.join(wt_root, "scrum-" + jid)
-        if os.path.islink(path) or not os.path.isdir(path):
-            continue
-        du = subprocess.run(["du", "-sk", path], capture_output=True, text=True).stdout.split()
-        kb = int(du[0]) if du and du[0].isdigit() else 0
-        size = subprocess.run(["du", "-sh", path], capture_output=True, text=True).stdout.split()
-        size = size[0] if size else "?"
-        total_kb += kb; n += 1
-        line = f"   {size:>6}  {repo}  {jid}  [{job['stage']}]"
-        if not apply:
-            print("   would remove" + line[2:])
-            continue
-        r = subprocess.run(["git", "-C", repo, "worktree", "remove", "--force", path], capture_output=True, text=True)
-        if r.returncode != 0:
-            print(f"   FAILED remove{line[2:]}: {(r.stderr.strip() or 'git refused').splitlines()[0]}")
-            continue
-        b = subprocess.run(["git", "-C", repo, "branch", "-d", "scrum/" + jid], capture_output=True, text=True)
-        if b.returncode == 0:
-            print(f"   removed{line[2:]}; branch scrum/{jid} deleted")
-        else:
-            print(f"   removed{line[2:]}; branch scrum/{jid} kept as unmerged ({(b.stderr.strip() or 'git refused').splitlines()[0]})")
-print(f"\n   {n} stale worktree(s), ~{total_kb / 1024:.1f} MB total")
-PY
-}
-
-# --- transcripts: gzip-archive old Claude transcripts -------------------------
-# Lists *.jsonl under ~/.claude/projects/<project>/ (recursing, skipping any
-# memory/ folder) with mtime 30+ days old. --apply gzips each into
-# ~/.claude/transcript-archive/<project>/<rel>.gz, verifies the archive
-# decompresses byte for byte to the original, and only then removes the
-# original. Never deletes a transcript without a verified archive.
-archive_transcripts() {
-  local apply=0; [[ "${1:-}" == "--apply" ]] && apply=1
-  python3 - "$apply" <<'PY'
-import gzip, os, shutil, sys, tempfile, time
-apply = sys.argv[1] == "1"
-src = os.path.expanduser("~/.claude/projects")
-dst = os.path.expanduser("~/.claude/transcript-archive")
-cutoff = time.time() - 86400 * 30
-def human(b):
-    for u in ("B", "K", "M", "G"):
-        if b < 1024 or u == "G":
-            return f"{b:.1f}{u}"
-        b /= 1024
-def same(gz_path, orig):
-    with gzip.open(gz_path, "rb") as a, open(orig, "rb") as b:
-        while True:
-            x, y = a.read(1 << 20), b.read(1 << 20)
-            if x != y:
-                return False
-            if not x:
-                return True
-print(">>> APPLY — archiving to " + dst if apply else ">>> DRY RUN — nothing will change (add --apply)")
-found = []
-projects = sorted(os.listdir(src)) if os.path.isdir(src) else []
-for proj in projects:
-    root = os.path.join(src, proj)
-    if not os.path.isdir(root) or os.path.islink(root):
-        continue
-    for d, dirs, files in os.walk(root):
-        dirs[:] = sorted(x for x in dirs if x != "memory")
-        for name in sorted(files):
-            p = os.path.join(d, name)
-            if not name.endswith(".jsonl") or os.path.islink(p) or not os.path.isfile(p):
-                continue
-            st = os.stat(p)
-            if st.st_mtime <= cutoff:
-                found.append((proj, os.path.relpath(p, root), p, st.st_size))
-before = after = n = 0
-for proj, rel, p, size in found:
-    if not apply:
-        print(f"   {human(size):>8}  {p}")
-        before += size; n += 1
-        continue
-    final = os.path.join(dst, proj, rel + ".gz")
-    tmp = None
-    try:
-        os.makedirs(os.path.dirname(final), exist_ok=True)
-        fd, tmp = tempfile.mkstemp(dir=os.path.dirname(final), prefix=".", suffix=".gz.tmp")
-        with os.fdopen(fd, "wb") as raw, gzip.GzipFile(fileobj=raw, mode="wb") as gz, open(p, "rb") as f:
-            shutil.copyfileobj(f, gz)
-        if not same(tmp, p):
-            raise ValueError("verify mismatch")
-        os.replace(tmp, final); tmp = None
-        os.remove(p)
-        gsize = os.path.getsize(final)
-        before += size; after += gsize; n += 1
-        print(f"   archived {human(size):>8} -> {human(gsize):>8}  {p}")
-    except (OSError, ValueError, EOFError) as e:
-        print(f"   KEPT (not archived: {e})  {p}")
-    finally:
-        if tmp and os.path.exists(tmp):
-            os.remove(tmp)
-if apply:
-    print(f"\n   {n} archived, {before} bytes before, {after} bytes after")
-else:
-    print(f"\n   {n} file(s), ~{human(before)} total")
-PY
-}
-
 # --- dispatch --------------------------------------------------------------
 cmd="${1:-scan}"; shift || true
 case "$cmd" in
   scan)   do_scan ;;
   clean)  do_clean "$@" ;;
-  assets)
+  assets|junk)
+    [[ "$cmd" == junk ]] && { FIND_FN=junk_find; LABEL="JUNK (installers/partials/unzipped zips/dupes)"; }
     sub="${1:-scan}"; shift || true
     case "$sub" in
-      scan)  assets_scan "$@" ;;
+      scan)  assets_scan "$@"; [[ "$cmd" == junk ]] && dupes_cross "$@" ;;
       trash) assets_trash "$@" ;;
-      *) echo "assets: use 'scan' or 'trash'"; exit 1 ;;
+      *) echo "$cmd: use 'scan' or 'trash'"; exit 1 ;;
     esac ;;
   offload)
     sub="${1:-}"; shift || true
@@ -778,15 +699,14 @@ case "$cmd" in
     echo "Local snapshots after:  $(tmutil listlocalsnapshots / 2>/dev/null | grep -c com.apple)" ;;
   audit) exec "$(dirname "$0")/deep-audit.sh" "$@" ;;
   report) do_report "$@" ;;
-  worktrees)   stale_worktrees "$@" ;;
-  transcripts) archive_transcripts "$@" ;;
   processes|proc)
     sub="${1:-report}"; shift || true
     case "$sub" in
       report) proc_report ;;
       quit)   proc_quit "$@" ;;
       reset)  proc_reset "$@" ;;
-      *) echo "processes: use 'report' (read-only), 'quit [--apply]', or 'reset [--apply|--self-check]'"; exit 1 ;;
+      ollama) ollama_unload "$@" ;;
+      *) echo "processes: use 'report' (read-only), 'quit [--apply]', 'reset [--apply|--self-check]', or 'ollama [--apply]'"; exit 1 ;;
     esac ;;
-  *) echo "Unknown command: $cmd"; echo "Use: scan | clean | assets | offload | archive | snapshots | audit | processes | report | worktrees | transcripts"; exit 1 ;;
+  *) echo "Unknown command: $cmd"; echo "Use: scan | clean | assets | junk | offload | archive | snapshots | audit | processes | report"; exit 1 ;;
 esac
