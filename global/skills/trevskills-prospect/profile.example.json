@@ -1,0 +1,23 @@
+{
+  "business": "Example Tee Co: custom screen printing and embroidery, 24-piece minimum, 7-day turnaround",
+  "targets": [
+    {"category": "Churches and faith groups", "keywords": ["church", "youth ministry"]},
+    {"category": "Schools and booster clubs", "keywords": ["high school", "elementary school", "booster club"]},
+    {"category": "Sports leagues", "keywords": ["youth sports league", "softball league"]},
+    {"category": "Breweries and cafes", "keywords": ["brewery", "coffee shop"]},
+    {"category": "Nonprofits and event planners", "keywords": ["nonprofit", "event planner", "fun run"]}
+  ],
+  "exclude_categories": ["screen printer", "t-shirt store", "embroidery service"],
+  "exclude_chains": ["Starbucks", "Walmart", "Target"],
+  "center": "47.6205,-122.3493",
+  "radius_miles": 10,
+  "conversion_pct": 4,
+  "avg_order_value": 450,
+  "goal_jobs": 4,
+  "min_rating": 3.5,
+  "max_results": 150,
+  "must_have_contact": ["email", "phone", "website"],
+  "outreach": "find",
+  "site_url": "https://example.com",
+  "fast_mode": true
+}
