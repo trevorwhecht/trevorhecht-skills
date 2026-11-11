@@ -378,7 +378,7 @@ host, _, box = mount.partition(":")
 local = lambda p: os.path.join(host, os.path.relpath(p, box))
 queries = open(local(args[args.index("-input") + 1])).read()
 json.dump({{"argv": args, "queries": queries}}, open(os.environ["FAKE_LOG"], "w"))
-rows = [{{"place_id": "ChIJ1", "title": "One", "web_site": "https://one.example", "longtitude": -122.3,
+rows = [{{"place_id": "ChIJ1", "title": "One", "category": "", "categories": ["Church", "Preschool"], "web_site": "https://one.example", "longtitude": -122.3,
          "latitude": 47.6, "review_rating": 4.1, "review_count": 9, "emails": ["a@one.example"]}},
         {{"data_id": "0x2", "title": "Two", "phone": "206-555-0100"}}]
 with open(local(args[args.index("-results") + 1]), "w") as f:
@@ -430,6 +430,7 @@ class ScrapeTest(Base):
         self.assertEqual(rows[0]["website"], "https://one.example")
         self.assertEqual(rows[0]["longitude"], -122.3)
         self.assertEqual(rows[0]["rating"], 4.1)
+        self.assertEqual(rows[0]["category"], "Church, Preschool")
         self.assertEqual(rows[1]["id"], "0x2")
         self.assertEqual(rows[1]["phone"], "206-555-0100")
         self.assertFalse(self.opened.exists())
@@ -454,6 +455,9 @@ class SourceTest(Base):
         self.assertEqual(prospect.parse_results(json.dumps(rows)), rows)
         self.assertEqual(prospect.parse_results("\n".join(json.dumps(r) for r in rows) + "\n"), rows)
         self.assertEqual(prospect.parse_results(""), [])
+        # v1.18.2 writes one JSON array per query, one per line
+        self.assertEqual(prospect.parse_results('[{"title": "A"}]\n[]\n[{"title": "B"}]\n'), rows)
+        self.assertEqual(prospect.parse_results(json.dumps(rows, indent=2)), rows)
 
     def test_geocode_empty_result_stops(self):
         self.write_profile(center="1 Nowhere Lane, Atlantis")

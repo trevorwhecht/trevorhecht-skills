@@ -180,7 +180,7 @@ def ev(p, fit):
 
 # Script field -> scraper JSON keys, first non-empty wins. Fix here when the scraper renames a key.
 SOURCE_KEYS = {
-    "id": ("place_id", "data_id", "cid"), "title": ("title",), "category": ("category",),
+    "id": ("place_id", "data_id", "cid"), "title": ("title",), "category": ("category", "categories"),
     "address": ("address",), "website": ("web_site", "website"), "phone": ("phone",), "emails": ("emails",),
     "rating": ("review_rating", "rating"), "review_count": ("review_count", "reviews_count"),
     "open_hours": ("open_hours",), "latitude": ("latitude",), "longitude": ("longtitude", "longitude"),
@@ -189,12 +189,20 @@ SOURCE_KEYS = {
 
 
 def parse_results(text):
-    text = text.strip()
-    if not text:
-        return []
-    if text.startswith("["):
-        return json.loads(text)
-    return [json.loads(line) for line in text.splitlines() if line.strip()]
+    """Accept one JSON array, or one object or array per line (v1.18.2 writes one array per query)."""
+    try:
+        data = json.loads(text) if text.strip() else []
+        return data if isinstance(data, list) else [data]
+    except ValueError:
+        pass
+    rows = []
+    try:
+        for line in filter(str.strip, text.splitlines()):
+            v = json.loads(line)
+            rows.extend(v if isinstance(v, list) else [v])
+    except ValueError as e:
+        raise Fail(f"cannot parse scraper output ({e})", 1)
+    return rows
 
 
 def docker_up():
@@ -231,8 +239,11 @@ def fetch_places(profile: dict, out_path: Path) -> list[dict]:
             raise Fail(f"scraper exited {r.returncode}: {tail}", 1)
         res = Path(work, "results.json")
         raw = parse_results(res.read_text()) if res.exists() else []
-    return [{k: next((s[x] for x in keys if s.get(x) not in (None, "", [])), None) for k, keys in SOURCE_KEYS.items()}
-            for s in raw]
+    rows = [{k: next((s[x] for x in keys if filled(s.get(x))), None) for k, keys in SOURCE_KEYS.items()} for s in raw]
+    for r in rows:
+        if isinstance(r["category"], list):
+            r["category"] = ", ".join(map(str, r["category"]))
+    return rows
 
 
 # ---------- field check ----------
@@ -291,7 +302,7 @@ def check_rows(rows, p, center):
         trip("distance", f"{far} rows lie beyond {limit:g} miles")
     for f in ("website", "phone", "emails"):
         if n >= 5 and fill[f] == 0:
-            trip(f, f"no row has a {f}")
+            trip(f, f"no row has any {f}")
     hit = {t["field"] for t in tripped}
     wholesale = n == 0 or fill["id"] < 0.5 or fill["title"] < 0.5 or {"website", "phone", "emails"} <= hit
     return {"rows": n, "fill": fill, "tripped": tripped, "wholesale": wholesale}
