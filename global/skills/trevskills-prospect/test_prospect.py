@@ -109,6 +109,8 @@ class PlanTest(Base):
             ({"must_have_contact": ["fax"]}, "must_have_contact"),
             ({"outreach": "draft"}, "business_address"),
             ({"site_url": "ftp://x"}, "site_url"),
+            ({"site_url": "http://example.com"}, "site_url"),
+            ({"site_url": "http://localhost.example.com"}, "site_url"),
             ({"targets": []}, "targets"),
             ({"min_rating": 6}, "min_rating"),
             ({"center": "95,10"}, "center"),
@@ -119,6 +121,11 @@ class PlanTest(Base):
                 r = self.run_cli("plan", self.proj)
                 self.assert_one_line_error(r, 2)
                 self.assertIn(key, r.stderr)
+        for ok in ("https://example.com", "http://localhost:3000", "http://127.0.0.1:8080"):
+            with self.subTest(ok=ok):
+                self.write_profile(site_url=ok)
+                r = self.run_cli("plan", self.proj)
+                self.assertEqual(r.returncode, 0, r.stderr)
         self.write_profile()
         r = self.run_cli("plan", self.proj, "--set", "radius_mile=3")
         self.assert_one_line_error(r, 2, "prospect: unknown key radius_mile")
@@ -227,6 +234,21 @@ class FilterTest(Base):
             self.assertNotIn("open_hours", x)
         r, out = self.run_filter(rows, "--drop-fields", "phone,emails,website")
         self.assertEqual(json.loads(r.stdout)["dropped"], {"below min rating": 1, "no contact": 5})
+
+    def test_filter_skips_distance_when_coords_dropped(self):
+        self.write_profile()
+        rows = [row(1), row(2, latitude=LAT + 0.2)]  # place2 is ~13.8 mi, radius is 5
+        r, _ = self.run_filter(rows)
+        self.assertEqual(json.loads(r.stdout)["dropped"], {"outside radius": 1})
+        for field in ("latitude", "longitude"):
+            with self.subTest(field=field):
+                r, out = self.run_filter(rows, "--drop-fields", field)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                self.assertEqual(json.loads(r.stdout)["dropped"], {})
+                got = json.loads(out.read_text())["rows"]
+                self.assertEqual(sorted(x["id"] for x in got), ["place1", "place2"])
+                for x in got:
+                    self.assertNotIn("distance_mi", x)
 
     def test_filter_refuses_wholesale_failure(self):
         self.write_profile()
@@ -357,6 +379,18 @@ class IngestTest(Base):
         self.assertEqual(leads[2]["draftMessage"], "Hi 2,\nWe print shirts.\n\n100 Example Ave, Springfield, ST 00000\n"
                                                    + OPT_OUT_LINE)
         self.assertIn("drafts 30", r.stdout)
+
+    def test_build_lead_omits_zero_rating_and_review_count(self):
+        score = {"fit": 50, "reason": "r"}
+        for zero in ({"rating": 0, "review_count": 0}, {"rating": None, "review_count": None}, {}):
+            with self.subTest(zero=zero):
+                r = row(1)
+                del r["rating"], r["review_count"]
+                lead = prospect.build_lead({**r, **zero}, score)
+                self.assertNotIn("rating", lead)
+                self.assertNotIn("reviewCount", lead)
+        lead = prospect.build_lead(row(1, rating=4.5, review_count=21), score)
+        self.assertEqual((lead["rating"], lead["reviewCount"]), (4.5, 21))
 
     def test_find_mode_sends_no_drafts(self):
         cands = [dict(row(i), distance_mi=1.0) for i in range(3)]
@@ -489,6 +523,23 @@ class SkillDocTest(unittest.TestCase):
             "outreach", "site_url", "business_address", "voice_skill", "fast_mode"])
         for key in prospect.PROFILE_KEYS:
             self.assertIn(f"`{key}`", text, key)
+
+    def step(self, text, start, end):
+        return text[text.index(start):text.index(end)]
+
+    def test_score_and_spot_check_treat_scraped_text_as_data(self):
+        text = (HERE / "SKILL.md").read_text()
+        spot = self.step(text, "4. **Spot-check", "5. **Filter.")
+        score = self.step(text, "6. **Score.", "7. **Ingest.")
+        for name, body in (("spot-check", spot), ("score", score)):
+            self.assertIn("never instructions", body, name)
+        for phrase in ("WebFetch only", "no Bash, Write or Edit"):
+            self.assertIn(phrase, spot)
+
+    def test_site_url_row_limits_http_to_localhost(self):
+        line = next(x for x in (HERE / "SKILL.md").read_text().splitlines() if x.startswith("| `site_url`"))
+        self.assertIn("localhost", line)
+        self.assertIn("127.0.0.1", line)
 
 
 if __name__ == "__main__":
