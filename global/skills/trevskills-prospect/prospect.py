@@ -27,6 +27,7 @@ FILL_FIELDS = ("id", "title", "category", "address", "website", "phone", "emails
                "open_hours", "latitude", "longitude")
 WEEKDAYS = re.compile(r"monday|tuesday|wednesday|thursday|friday|saturday|sunday", re.I)
 LATLON = re.compile(r"^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$")
+LOCAL_HOSTS = ("localhost", "127.0.0.1")  # the only hosts the bearer token may reach over plain http
 
 # key -> default; REQUIRED marks keys with no default. Order is the order SKILL.md documents them.
 REQUIRED = object()
@@ -114,8 +115,9 @@ def validate(p):
          "a non-empty list drawn from phone, email, website")
     need(p["outreach"] in ("find", "draft"), "outreach", "find or draft")
     u = p["site_url"]
-    need(isinstance(u, str) and urlparse(u).scheme in ("http", "https") and urlparse(u).netloc, "site_url",
-         "an http or https URL")
+    pu = urlparse(u) if isinstance(u, str) else None
+    need(pu and pu.netloc and (pu.scheme == "https" or pu.scheme == "http" and pu.hostname in LOCAL_HOSTS),
+         "site_url", "an https URL (http only for localhost or 127.0.0.1)")
     a = p["business_address"]
     need(a is None or (isinstance(a, str) and a.strip()), "business_address", "a non-empty string")
     need(p["outreach"] != "draft" or a, "business_address", "set when outreach is draft")
@@ -349,7 +351,7 @@ def filter_rows(rows, p, center, drop):
         if any(c in str(src.get("title") or "").lower() for c in chains):
             out("chain")
             continue
-        c = coords(src)
+        c = None if {"latitude", "longitude"} & drop else coords(src)
         if c:
             dist = miles(center, c)
             if dist > p["radius_miles"]:
@@ -409,7 +411,8 @@ def build_lead(row, score):
     lead = {"source": "prospect", "placeId": row["id"], "name": row.get("title"), "company": row.get("title"),
             "email": email, "phone": phone_e164(row.get("phone")), "website": row.get("website"),
             "address": row.get("address"), "category": row.get("category"), "distanceMi": row.get("distance_mi"),
-            "rating": row.get("rating"), "reviewCount": row.get("review_count"), "summary": score["reason"],
+            "rating": row.get("rating") or None, "reviewCount": row.get("review_count") or None,
+            "summary": score["reason"],
             "conversionProbability": round(score["fit"])}
     return {k: v for k, v in lead.items() if filled(v)}
 
