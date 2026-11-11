@@ -115,8 +115,12 @@ def validate(p):
          "a non-empty list drawn from phone, email, website")
     need(p["outreach"] in ("find", "draft"), "outreach", "find or draft")
     u = p["site_url"]
-    pu = urlparse(u) if isinstance(u, str) else None
-    need(pu and pu.netloc and (pu.scheme == "https" or pu.scheme == "http" and pu.hostname in LOCAL_HOSTS),
+    try:
+        pu = urlparse(u) if isinstance(u, str) else None
+        site_ok = bool(pu and pu.netloc and (pu.scheme == "https" or pu.scheme == "http" and pu.hostname in LOCAL_HOSTS))
+    except ValueError:  # e.g. "https://[bad": Invalid IPv6 URL
+        site_ok = False
+    need(site_ok,
          "site_url", "an https URL (http only for localhost or 127.0.0.1)")
     a = p["business_address"]
     need(a is None or (isinstance(a, str) and a.strip()), "business_address", "a non-empty string")

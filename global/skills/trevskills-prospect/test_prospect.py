@@ -111,6 +111,8 @@ class PlanTest(Base):
             ({"site_url": "ftp://x"}, "site_url"),
             ({"site_url": "http://example.com"}, "site_url"),
             ({"site_url": "http://localhost.example.com"}, "site_url"),
+            ({"site_url": "https://[bad"}, "site_url"),
+            ({"site_url": "http://[::1"}, "site_url"),
             ({"targets": []}, "targets"),
             ({"min_rating": 6}, "min_rating"),
             ({"center": "95,10"}, "center"),
