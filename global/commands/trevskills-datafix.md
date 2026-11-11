@@ -9,8 +9,8 @@ This command is Trevor's explicit instruction to run a data script against the c
 **Never, at any step:**
 - Deleting rows, unless the task explicitly asked for deletes (and then only those rows, named in the dry run).
 - `prisma db push`, `prisma migrate *`, or any schema change. Schema work goes to `/trevskills-migrate`.
-- Reading, cat-ing or grepping `.env.prod`, `.env.production` or `.env.staging`. Prod is reached only through `npx dotenv -e .env.prod --` in Step 5.
-- Port `:3001` is production. Steps 0-4 print the `DATABASE_URL` host and port only (never the password) and STOP if it contains `:3001`.
+- Reading, cat-ing or grepping `.env.prod`, `.env.production` or `.env.staging`. Prod is reached only through `npx dotenv -e .env.prod --` in Steps 4-5.
+- Port `:3001` is production. Steps 0-3 print the `DATABASE_URL` host and port only (never the password) and STOP if it contains `:3001`.
 
 ---
 
@@ -24,7 +24,7 @@ This command is Trevor's explicit instruction to run a data script against the c
 
 A new or edited script must have all of these before it runs anywhere:
 
-1. **Dry run by default.** With no flag it prints what would change, with row counts (matched, to change, to skip), and writes nothing. Writing needs an explicit `--apply`.
+1. **Dry run by default.** With no flag it prints what would change, with row counts (matched, to change, to skip), and writes nothing. Writing needs an explicit `--apply`. A script that deletes rows snapshots the full deleted rows (every column), and its undo re-inserts them.
 2. **Idempotent.** Selecting rows that still need the change means a second run matches 0 rows.
 3. **Snapshot before write.** Before `--apply` touches a row, write the affected rows (ids + old values of every column it changes) to a JSON file, e.g. `scripts/snapshots/<name>-<env>-<timestamp>.json`. Do not commit snapshots that hold personal data; add the folder to `.gitignore`.
 4. **Written undo.** The script's header comment (or a `--restore <snapshot.json>` mode) states exactly how to put the old values back from the snapshot. Undo updates by id and restores only the changed columns.
