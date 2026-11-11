@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Deterministic half of /trevskills-prospect: profile, scrape, field check, filter, ingest.
+"""Deterministic half of /trevskills-prospect: profile, scrape, field check, filter, Jev fit score, ingest.
 
   prospect.py plan   <project> [--set k=v ...]
   prospect.py scrape <project> --out raw.json [--set ...]
   prospect.py check  <raw.json> --project <project> [--set ...]
   prospect.py filter <raw.json> --project <project> [--drop-fields a,b] --out candidates.json [--set ...]
+  prospect.py score  <project> --candidates candidates.json --out scores.json [--set ...]
   prospect.py ingest <project> --candidates candidates.json --scores scores.json [--dry-run] [--set ...]
 
 Every failure is one line `prospect: <what is wrong>` on stderr. Stdlib only.
@@ -17,6 +18,10 @@ from urllib.parse import urlencode, urlparse
 from urllib.request import Request, urlopen
 
 IMAGE = "gosom/google-maps-scraper:v1.18.2"
+SLOW_DEPTH = 3  # -depth for slow-mode runs (gosom default 10); a guess, tune after the next real run
+JEV_URL = "https://api.typesafe.ai/v1/systemone"
+JEV_BATCH = 20  # candidates per Jev request, one noul question each
+FIT_CUT = 50  # fit at or above this gets a written reason (lower edge of "likely buyer")
 MAX_BATCH = 200
 MAX_DRAFTS = 30
 OPT_OUT = "If you'd rather not hear from me, just reply and I won't email again."
@@ -27,6 +32,9 @@ FILL_FIELDS = ("id", "title", "category", "address", "website", "phone", "emails
                "open_hours", "latitude", "longitude")
 WEEKDAYS = re.compile(r"monday|tuesday|wednesday|thursday|friday|saturday|sunday", re.I)
 LATLON = re.compile(r"^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$")
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[A-Za-z]{2,}$")
+IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp")
+PLACEHOLDER_DOMAINS = {"example.com", "example.org", "example.net", "domain.com", "yourdomain.com", "email.com"}
 LOCAL_HOSTS = ("localhost", "127.0.0.1")  # the only hosts the bearer token may reach over plain http
 
 # key -> default; REQUIRED marks keys with no default. Order is the order SKILL.md documents them.
@@ -128,6 +136,8 @@ def validate(p):
     v = p["voice_skill"]
     need(v is None or (isinstance(v, str) and v.strip()), "voice_skill", "a non-empty string")
     need(isinstance(p["fast_mode"], bool), "fast_mode", "true or false")
+    if p["outreach"] == "draft" or p["must_have_contact"] == ["email"]:
+        p["fast_mode"] = False  # fast mode skips website visits, so it finds no emails
     return p
 
 
@@ -239,6 +249,8 @@ def fetch_places(profile: dict, out_path: Path) -> list[dict]:
                "-radius", str(round(profile["radius_miles"] * 1609.344)), "-exit-on-inactivity", "3m"]
         if profile["fast_mode"]:
             cmd.append("-fast-mode")
+        else:  # -radius does not bound the website-visit pass; cap its crawl instead
+            cmd += ["-depth", str(SLOW_DEPTH)]
         r = subprocess.run(cmd, capture_output=True, text=True)
         if r.returncode != 0:
             tail = (r.stderr.strip().splitlines() or ["no output"])[-1]
@@ -328,6 +340,39 @@ def load_rows(path):
 
 # ---------- filter ----------
 
+def target_match(row: dict, p: dict) -> bool:
+    """True when a target keyword is in the row's category, or a category part is in a keyword."""
+    cat = str(row.get("category") or "").lower()
+    if not cat.strip():
+        return False
+    keys = [k.lower().strip() for t in p["targets"] for k in t["keywords"]]
+    parts = [x.strip() for x in cat.split(",") if x.strip()]
+    return any(k in cat for k in keys) or any(x in k for x in parts for k in keys)
+
+
+def clean_emails(emails, website) -> list[str]:
+    """Drop junk addresses and case-insensitive duplicates; the website's own domain comes first."""
+    if isinstance(emails, str):
+        emails = [emails]
+    seen, out = set(), []
+    for e in emails if isinstance(emails, list) else []:
+        e = e.strip() if isinstance(e, str) else ""
+        low = e.lower()
+        local, _, domain = low.partition("@")
+        if (not EMAIL_RE.match(e) or low.endswith(IMAGE_EXTS) or domain in PLACEHOLDER_DOMAINS
+                or local.startswith("your") or low in seen):
+            continue
+        seen.add(low)
+        out.append(e)
+    try:
+        w = str(website or "")
+        host = (urlparse(w if "//" in w else "//" + w).hostname or "").removeprefix("www.")
+    except ValueError:
+        host = ""
+    own = lambda e: bool(host) and (e.lower().partition("@")[2] == host or e.lower().endswith("." + host))
+    return sorted(out, key=lambda e: not own(e))
+
+
 def filter_rows(rows, p, center, drop):
     seen, kept, dropped = set(), [], {}
 
@@ -367,15 +412,82 @@ def filter_rows(rows, p, center, drop):
             continue
         if "phone" in r:
             r["phone"] = phone_e164(r["phone"]) or ""
+        if "emails" in r:
+            r["emails"] = clean_emails(r["emails"], r.get("website"))
         if not any(filled(r.get(CONTACT_FIELDS[k])) for k in p["must_have_contact"]):
             out("no contact")
             continue
         kept.append(r)
-    kept.sort(key=lambda r: r.get("distance_mi", math.inf))
+    kept.sort(key=lambda r: (not target_match(r, p), r.get("distance_mi", math.inf)))
     if len(kept) > p["max_results"]:
         dropped["over max results"] = len(kept) - p["max_results"]
         kept = kept[:p["max_results"]]
     return kept, dropped
+
+
+# ---------- score ----------
+
+def jev_key() -> str:
+    key = os.environ.get("TYPESAFE_API_KEY", "").strip()
+    if key:
+        return key
+    try:
+        return subprocess.run(["/usr/bin/security", "find-generic-password", "-s", "TypeSafe", "-a", "typesafe", "-w"],
+                              capture_output=True, text=True).stdout.strip()
+    except OSError:
+        return ""
+
+
+def jev_fits(p: dict, rows: list[dict], key: str) -> list[int]:
+    """Ask Jev how likely each row is to buy from the profile business; one 0-100 fit per row."""
+    fits = []
+    for b in range(0, len(rows), JEV_BATCH):
+        batch = rows[b:b + JEV_BATCH]
+        items = {str(i): json.dumps({"name": r.get("title"), "category": r.get("category"), "rating": r.get("rating"),
+                                     "reviews": r.get("review_count"), "website": r.get("website"),
+                                     "distance_mi": r.get("distance_mi")}) for i, r in enumerate(batch)}
+        questions = {f"q{i}": {"type": "noul", "instructions": (
+            f"How likely business {i} in items is to buy the products of the business described in business. "
+            "On a 0-100 scale: 80-100 a direct, recurring buyer; 50-79 a likely buyer; 20-49 possible; "
+            "0-19 unlikely.")} for i in range(len(batch))}
+        body = json.dumps({"model": "jev-latest", "state": {"business": p["business"], "items": items},
+                           "questions": questions}).encode()
+        req = Request(JEV_URL, body, {"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
+        for attempt in range(4):
+            try:
+                with urlopen(req, timeout=60) as r:
+                    answers = json.load(r)["answers"]
+                got = [answers[f"q{i}"]["noul"] for i in range(len(batch))]
+                if not all(is_num(x) for x in got):
+                    raise TypeError("non-numeric answer")
+                break
+            except HTTPError as e:
+                with e:
+                    raw = e.read()[:300]
+                if e.code in (429, 529) and attempt < 3:
+                    time.sleep(2 ** attempt)
+                    continue
+                text = " ".join(raw.decode("utf-8", "replace").split())
+                raise Fail(f"Jev unavailable: HTTP {e.code} {text}".replace(key, "[key]"), 1)
+            except (URLError, OSError) as e:
+                raise Fail(f"Jev unavailable: {e}".replace(key, "[key]"), 1)
+            except (KeyError, TypeError, ValueError) as e:
+                raise Fail(f"Jev unavailable: response missing an answer ({e})".replace(key, "[key]"), 1)
+        fits += [max(0, min(100, round(x * 100))) for x in got]
+    return fits
+
+
+def score(p, cand_path, out_path):
+    rows = load_rows(cand_path)
+    fits = []
+    if rows:
+        key = jev_key()
+        if not key:
+            raise Fail("Jev unavailable: no TYPESAFE_API_KEY", 1)
+        fits = jev_fits(p, rows, key)
+    Path(out_path).write_text(json.dumps([{"id": r.get("id"), "fit": f, "reason": ""} for r, f in zip(rows, fits)],
+                                         indent=1))
+    print(f"scored {len(rows)} rows, {sum(f >= FIT_CUT for f in fits)} at fit >= {FIT_CUT}")
 
 
 # ---------- ingest ----------
@@ -410,8 +522,8 @@ def load_scores(path):
 
 
 def build_lead(row, score):
-    emails = row.get("emails") or []
-    email = emails[0] if isinstance(emails, list) and emails else emails if isinstance(emails, str) else None
+    emails = clean_emails(row.get("emails"), row.get("website"))
+    email = emails[0] if emails else None
     lead = {"source": "prospect", "placeId": row["id"], "name": row.get("title"), "company": row.get("title"),
             "email": email, "phone": phone_e164(row.get("phone")), "website": row.get("website"),
             "address": row.get("address"), "category": row.get("category"), "distanceMi": row.get("distance_mi"),
@@ -493,6 +605,10 @@ def main(argv=None):
     fl.add_argument("--project", required=True)
     fl.add_argument("--drop-fields", default="")
     fl.add_argument("--out", required=True)
+    so = sub.add_parser("score", parents=[sets])
+    so.add_argument("project")
+    so.add_argument("--candidates", required=True)
+    so.add_argument("--out", required=True)
     ig = sub.add_parser("ingest", parents=[sets])
     ig.add_argument("project")
     ig.add_argument("--candidates", required=True)
@@ -504,7 +620,8 @@ def main(argv=None):
         if a.cmd == "plan":
             print(json.dumps({"center": center_of(p), "radius_m": round(p["radius_miles"] * 1609.344),
                               "queries": queries(p), "leads_needed": leads_needed(p),
-                              "ev_per_lead_at_fit_100": round(ev(p, 100), 2)}, indent=2))
+                              "ev_per_lead_at_fit_100": round(ev(p, 100), 2), "fast_mode": p["fast_mode"]},
+                             indent=2))
         elif a.cmd == "scrape":
             rows = fetch_places(p, Path(a.out))
             Path(a.out).write_text(json.dumps(rows, indent=1))
@@ -524,6 +641,8 @@ def main(argv=None):
             kept, dropped = filter_rows(rows, p, center, drop)
             Path(a.out).write_text(json.dumps({"found": len(rows), "dropped": dropped, "rows": kept}, indent=1))
             print(json.dumps({"found": len(rows), "kept": len(kept), "dropped": dropped}))
+        elif a.cmd == "score":
+            score(p, a.candidates, a.out)
         else:
             ingest(proj, p, a.candidates, a.scores, a.dry_run)
     except Fail as e:

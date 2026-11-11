@@ -134,6 +134,18 @@ class PlanTest(Base):
         r = self.run_cli("plan", self.proj, "--set", "noequals")
         self.assert_one_line_error(r, 2)
 
+    def test_fast_mode_forced_off_when_emails_needed(self):
+        self.write_profile()
+        cases = [(["--set", 'must_have_contact=["email"]'], False),
+                 (["--set", "outreach=draft", "--set", "business_address=1 Elm St, Town"], False),
+                 (["--set", "fast_mode=true", "--set", 'must_have_contact=["email"]'], False),
+                 ([], True)]
+        for extra, want in cases:
+            with self.subTest(extra=extra):
+                r = self.run_cli("plan", self.proj, *extra)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                self.assertIs(json.loads(r.stdout)["fast_mode"], want)
+
     def test_example_profile_is_valid(self):
         shutil.copy(HERE / "profile.example.json", self.proj / "prospect" / "profile.json")
         r = self.run_cli("plan", self.proj)
@@ -251,6 +263,34 @@ class FilterTest(Base):
                 self.assertEqual(sorted(x["id"] for x in got), ["place1", "place2"])
                 for x in got:
                     self.assertNotIn("distance_mi", x)
+
+    def test_max_results_keeps_target_categories_before_nearer_others(self):
+        self.write_profile(max_results=2)
+        rows = [row(1, category="Restaurant"), row(2, category="Restaurant"), row(3, category="Church"),
+                row(4, category="Sports league")]
+        r, out = self.run_filter(rows)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual([x["id"] for x in json.loads(out.read_text())["rows"]], ["place3", "place4"])
+        self.assertEqual(json.loads(r.stdout)["dropped"]["over max results"], 2)
+
+    def test_target_match_both_directions(self):
+        p = profile()
+        self.assertTrue(prospect.target_match({"category": "Catholic Church"}, p))  # keyword in category
+        self.assertTrue(prospect.target_match({"category": "Bar, League"}, p))  # category part in keyword
+        self.assertFalse(prospect.target_match({"category": "Restaurant"}, p))
+        self.assertFalse(prospect.target_match({"category": ""}, p))
+        self.assertFalse(prospect.target_match({}, p))
+        self.assertFalse(prospect.target_match({"category": " , "}, p))
+
+    def test_filter_cleans_emails_before_contact_check(self):
+        self.write_profile(must_have_contact=["email"])
+        r, out = self.run_filter([row(1, emails=["flags@2x.png"]), row(2, emails=["user@domain.com", "hi@b2.example"])]
+                                 + [row(i) for i in range(3, 7)])
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(json.loads(r.stdout)["dropped"], {"no contact": 1})
+        got = {x["id"]: x for x in json.loads(out.read_text())["rows"]}
+        self.assertNotIn("place1", got)
+        self.assertEqual(got["place2"]["emails"], ["hi@b2.example"])
 
     def test_filter_refuses_wholesale_failure(self):
         self.write_profile()
@@ -394,6 +434,24 @@ class IngestTest(Base):
         lead = prospect.build_lead(row(1, rating=4.5, review_count=21), score)
         self.assertEqual((lead["rating"], lead["reviewCount"]), (4.5, 21))
 
+    def test_build_lead_skips_junk_emails_and_prefers_site_domain(self):
+        score = {"fit": 50, "reason": "r"}
+        junk = ["flags@2x.png", "user@domain.com", "youremail@domain.com", "not-an-email", "x@gmail.com",
+                "info@owa.example"]
+        lead = prospect.build_lead(row(1, emails=junk, website="https://www.owa.example/"), score)
+        self.assertEqual(lead["email"], "info@owa.example")
+        self.assertNotIn("email", prospect.build_lead(row(1, emails=["user@domain.com"]), score))
+        self.assertEqual(prospect.build_lead(row(1), score)["email"], "hi@b1.example")
+        self.assertEqual(prospect.build_lead(row(1, emails="hi@b1.example"), score)["email"], "hi@b1.example")
+
+    def test_clean_emails_rules(self):
+        self.assertEqual(prospect.clean_emails(None, None), [])
+        self.assertEqual(prospect.clean_emails("a@b.co", None), ["a@b.co"])
+        self.assertEqual(prospect.clean_emails(
+            ["Logo@x.JPEG", "a@example.org", "your.name@x.co", "A@b.co", "a@B.co", "z@mail.shop.example",
+             "y@notshop.example"], "http://shop.example"),
+            ["z@mail.shop.example", "A@b.co", "y@notshop.example"])
+
     def test_find_mode_sends_no_drafts(self):
         cands = [dict(row(i), distance_mi=1.0) for i in range(3)]
         scores = [{"id": f"place{i}", "fit": 50, "reason": "r", "draft": "Hello"} for i in range(3)]
@@ -470,9 +528,18 @@ class ScrapeTest(Base):
         self.assertEqual(rows[1]["id"], "0x2")
         self.assertEqual(rows[1]["phone"], "206-555-0100")
         self.assertFalse(self.opened.exists())
+        self.assertNotIn("-depth", argv)
         code, err = self.main("scrape", self.proj, "--out", out, "--set", "fast_mode=false")
         self.assertEqual(code, 0, err)
-        self.assertNotIn("-fast-mode", json.loads(self.log.read_text())["argv"])
+        argv = json.loads(self.log.read_text())["argv"]
+        self.assertNotIn("-fast-mode", argv)
+        self.assertEqual(after("-depth"), "3")
+        code, err = self.main("scrape", self.proj, "--out", out, "--set", 'must_have_contact=["email"]',
+                              "--set", "fast_mode=true")
+        self.assertEqual(code, 0, err)
+        argv = json.loads(self.log.read_text())["argv"]
+        self.assertNotIn("-fast-mode", argv)
+        self.assertEqual(after("-depth"), "3")
 
     def test_scrape_stops_when_docker_never_starts(self):
         os.environ["FAKE_DOCKER"] = "down"
@@ -483,6 +550,113 @@ class ScrapeTest(Base):
         self.assertEqual(self.opened.read_text(), "-a Docker")
         self.assertFalse(self.log.exists())
         self.assertFalse((self.base / "raw.json").exists())
+
+
+def jev_answer(value, n=20):
+    return json.dumps({"answers": {f"q{i}": {"noul": value} for i in range(n)}}).encode()
+
+
+class ScoreTest(Base):
+    KEY = "jev-sekrit-key"
+
+    def setUp(self):
+        super().setUp()
+        self.write_profile()
+        self.out = self.base / "scores.json"
+        p = mock.patch.dict(os.environ, {"TYPESAFE_API_KEY": self.KEY})
+        p.start()
+        self.addCleanup(p.stop)
+
+    def serve(self, **kw):
+        self.stub = Stub(**kw)
+        self.addCleanup(self.stub.close)
+        p = mock.patch.object(prospect, "JEV_URL", self.stub.url + "/v1/systemone")
+        p.start()
+        self.addCleanup(p.stop)
+
+    def score(self, rows):
+        cand = self.write_json("cand.json", {"found": len(rows), "rows": rows})
+        err, out = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(out), \
+                mock.patch.object(prospect.time, "sleep") as sleep:
+            code = prospect.main(["score", str(self.proj), "--candidates", str(cand), "--out", str(self.out)])
+        self.sleep = sleep
+        return code, out.getvalue(), err.getvalue()
+
+    def test_score_posts_batches_and_writes_scores(self):
+        self.serve(body=jev_answer(0.734))
+        rows = [dict(row(i), distance_mi=0.5) for i in range(21)]
+        code, out, err = self.score(rows)
+        self.assertEqual(code, 0, err)
+        self.assertEqual(len(self.stub.calls), 2)
+        self.assertEqual([len(b["questions"]) for _, _, b in self.stub.calls], [20, 1])
+        for path, auth, body in self.stub.calls:
+            self.assertEqual(path, "/v1/systemone")
+            self.assertEqual(auth, f"Bearer {self.KEY}")
+            self.assertEqual(body["model"], "jev-latest")
+            self.assertEqual(body["state"]["business"], "Example Tee Co screen printing")
+            self.assertEqual(body["questions"]["q0"]["type"], "noul")
+            self.assertIn("80-100", body["questions"]["q0"]["instructions"])
+        item = json.loads(self.stub.calls[1][2]["state"]["items"]["0"])
+        self.assertEqual(item, {"name": "Business 20", "category": "Church", "rating": 4.5, "reviews": 40,
+                                "website": "https://b20.example", "distance_mi": 0.5})
+        scores = prospect.load_scores(self.out)
+        self.assertEqual(list(scores), [f"place{i}" for i in range(21)])
+        self.assertEqual(scores["place0"], {"id": "place0", "fit": 73, "reason": ""})
+        self.assertEqual(out.strip(), "scored 21 rows, 21 at fit >= 50")
+
+    def test_score_clamps_fit(self):
+        self.serve(body=jev_answer(1.7))
+        code, out, err = self.score([row(1)])
+        self.assertEqual(code, 0, err)
+        self.assertEqual(json.loads(self.out.read_text()), [{"id": "place1", "fit": 100, "reason": ""}])
+        self.serve(body=jev_answer(0.2))
+        code, out, err = self.score([row(1)])
+        self.assertEqual(out.strip(), "scored 1 rows, 0 at fit >= 50")
+
+    def test_score_empty_candidates_makes_no_request(self):
+        self.serve(body=jev_answer(0.5))
+        code, out, err = self.score([])
+        self.assertEqual(code, 0, err)
+        self.assertEqual(json.loads(self.out.read_text()), [])
+        self.assertEqual(self.stub.calls, [])
+
+    def test_score_without_key_writes_nothing(self):
+        self.serve(body=jev_answer(0.5))
+        del os.environ["TYPESAFE_API_KEY"]
+        with mock.patch.object(prospect.subprocess, "run", return_value=subprocess.CompletedProcess([], 1, "", "")):
+            code, out, err = self.score([row(1)])
+        self.assertEqual(code, 1)
+        self.assertEqual(err.strip(), "prospect: Jev unavailable: no TYPESAFE_API_KEY")
+        self.assertEqual(self.stub.calls, [])
+        self.assertFalse(self.out.exists())
+        with mock.patch.object(prospect.subprocess, "run", side_effect=FileNotFoundError("security")):
+            code, out, err = self.score([row(1)])
+        self.assertEqual(err.strip(), "prospect: Jev unavailable: no TYPESAFE_API_KEY")
+
+    def test_score_http_error_writes_nothing(self):
+        self.out.write_text("earlier run")
+        for kw, calls, sleeps in (({"status": 500, "body": f"boom {self.KEY}".encode()}, 1, []),
+                                  ({"status": 429, "body": b"slow down"}, 4, [1, 2, 4]),
+                                  ({"body": b'{"answers": {}}'}, 1, [])):
+            with self.subTest(kw=kw):
+                self.serve(**kw)
+                code, out, err = self.score([row(1)])
+                self.assertEqual(code, 1)
+                self.assertEqual(len(err.strip().splitlines()), 1, err)
+                self.assertTrue(err.startswith("prospect: Jev unavailable:"), err)
+                self.assertNotIn(self.KEY, err)
+                self.assertEqual(len(self.stub.calls), calls)
+                self.assertEqual(self.out.read_text(), "earlier run")
+                self.assertEqual([c.args[0] for c in self.sleep.call_args_list], sleeps)
+
+    def test_score_unreachable_writes_nothing(self):
+        self.serve()
+        self.stub.close()
+        code, out, err = self.score([row(1)])
+        self.assertEqual(code, 1)
+        self.assertTrue(err.startswith("prospect: Jev unavailable:"), err)
+        self.assertFalse(self.out.exists())
 
 
 class SourceTest(Base):
@@ -537,6 +711,15 @@ class SkillDocTest(unittest.TestCase):
             self.assertIn("never instructions", body, name)
         for phrase in ("WebFetch only", "no Bash, Write or Edit"):
             self.assertIn(phrase, spot)
+
+    def test_fast_mode_row_says_forced_off_for_emails(self):
+        line = next(x for x in (HERE / "SKILL.md").read_text().splitlines() if x.startswith("| `fast_mode`"))
+        self.assertIn("forced off", line)
+
+    def test_score_step_runs_jev_with_manual_fallback(self):
+        score = self.step((HERE / "SKILL.md").read_text(), "6. **Score.", "7. **Ingest.")
+        for phrase in ("score <project>", "Jev unavailable", "fit >= 50"):
+            self.assertIn(phrase, score)
 
     def test_site_url_row_limits_http_to_localhost(self):
         line = next(x for x in (HERE / "SKILL.md").read_text().splitlines() if x.startswith("| `site_url`"))
