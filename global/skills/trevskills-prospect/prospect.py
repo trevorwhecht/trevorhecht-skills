@@ -34,7 +34,7 @@ WEEKDAYS = re.compile(r"monday|tuesday|wednesday|thursday|friday|saturday|sunday
 LATLON = re.compile(r"^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$")
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[A-Za-z]{2,}$")
 IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp")
-PLACEHOLDER_DOMAINS = {"example.com", "example.org", "example.net", "domain.com", "yourdomain.com", "email.com"}
+PLACEHOLDER_DOMAINS = {"example.com", "example.org", "example.net", "domain.com", "yourdomain.com"}
 LOCAL_HOSTS = ("localhost", "127.0.0.1")  # the only hosts the bearer token may reach over plain http
 
 # key -> default; REQUIRED marks keys with no default. Order is the order SKILL.md documents them.
