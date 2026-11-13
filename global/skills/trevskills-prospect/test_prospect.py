@@ -447,6 +447,7 @@ class IngestTest(Base):
     def test_clean_emails_rules(self):
         self.assertEqual(prospect.clean_emails(None, None), [])
         self.assertEqual(prospect.clean_emails("a@b.co", None), ["a@b.co"])
+        self.assertEqual(prospect.clean_emails(["owner@email.com"], None), ["owner@email.com"])
         self.assertEqual(prospect.clean_emails(
             ["Logo@x.JPEG", "a@example.org", "your.name@x.co", "A@b.co", "a@B.co", "z@mail.shop.example",
              "y@notshop.example"], "http://shop.example"),
