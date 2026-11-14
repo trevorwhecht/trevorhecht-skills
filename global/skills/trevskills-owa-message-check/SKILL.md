@@ -63,8 +63,8 @@ Jev reads text only; decide an image from its thread context, never as if seen. 
 and decide by reading the short list yourself, marking those rows "(no Jev)".
 
 Then place each person:
-- **They spoke last, a call after their last message** (call log, same number) → *Maybe sorted by a call*. No draft;
-  ask "Call on <date>, sorted?".
+- **They spoke last, a call after their last message** (call log, same number) → *Maybe sorted by a call*. Its draft
+  is a short check-in to send only if the call didn't sort it.
 - **They spoke last, a work ask** → *Order asks waiting*. Order asks get a reply the same day, so they go first.
 - **They spoke last, needs a reply, not a work ask** → *Other replies waiting*.
 - **Trevor spoke last, not resolved, quiet 3+ days, within 30 days** → *Stale, not resolved*.
@@ -73,41 +73,42 @@ Then place each person:
 ## 5. Output
 
 Organized markdown tables, in this order. Every table has a **Source** column (`Text`, `Email`, `Insta`, or several
-joined with ` + `). An empty table is the heading plus one line: `None.`
+joined with ` + `) and a last **Draft** column (rules in section 6). An empty table is the heading plus one line: `None.`
 
 ### Order asks waiting
 Oldest first.
 
-| Name | Source | Waiting | Gist |
-|---|---|---|---|
+| Name | Source | Waiting | Gist | Draft |
+|---|---|---|---|---|
 
 ### Other replies waiting
 Oldest first.
 
-| Name | Source | Waiting | Gist |
-|---|---|---|---|
+| Name | Source | Waiting | Gist | Draft |
+|---|---|---|---|---|
 
 ### Stale, not resolved
 
-| Name | Source | Quiet for | Last message (who) | What's open |
-|---|---|---|---|---|
+| Name | Source | Quiet for | Last message (who) | What's open | Draft |
+|---|---|---|---|---|---|
 
 ### Maybe sorted by a call
 
-| Name | Source | Call date | Their last message |
-|---|---|---|---|
+| Name | Source | Call date | Their last message | Draft |
+|---|---|---|---|---|
 
 `Waiting` and `Quiet for` are durations since the last message (`3 h`, `2 d`, `3 wk`). `Gist` and `What's open` are
 one short line each.
 
-## 6. Drafts
+## 6. Drafts (the Draft column)
 
-Write a draft for **every row in the first three tables** with the `trevskills-email` skill (Trevor's voice, the OWA
-profile). Stale rows get a short nudge. Show them after the tables under one heading per person (`#### <Name> (<Source>)`),
-written for the channel Trevor should reply on (the one they last used).
+Every row in all four tables gets a draft in its **Draft** cell, written with the `trevskills-email` skill (Trevor's
+voice, the OWA profile) for the channel they last used. One line per cell: a multi-line email draft is written on one
+line with its greeting and sign-off kept. Stale rows get a short nudge; *Maybe sorted by a call* rows get a short
+check-in to send only if the call didn't sort it.
 
-For an Instagram row whose last DM from them is over 24 h old, add the note "Past the 24 h reply window: send this in
-the Instagram app" (the API rejects replies after 24 h).
+A step Trevor must do first goes in front in italics (e.g. *Update quote 311 first.*). An Instagram row whose last DM
+from them is over 24 h old starts with *Send in the Instagram app (past 24 h).* (the API rejects replies after 24 h).
 
 The skill never sends anything. Trevor sends each draft himself.
 
@@ -115,15 +116,13 @@ The skill never sends anything. Trevor sends each draft himself.
 
 ```
 ### Order asks waiting
-| Name | Source | Waiting | Gist |
-|---|---|---|---|
-| Sam (Corner Café 🌀) | Text + Email | 2 d | 48 tote bags, wants a price by Friday |
+| Name | Source | Waiting | Gist | Draft |
+|---|---|---|---|---|
+| Sam (Corner Café 🌀) | Text + Email | 2 d | 48 tote bags, wants a price by Friday | Hey Sam, 48 totes one color comes to ... Want me to send a mockup? |
 
 ### Other replies waiting
 None.
 ...
-#### Sam (Text)
-Hey Sam, 48 totes one color comes to ... Want me to send a mockup?
 ```
 
 ## Out of scope
