@@ -14,8 +14,9 @@ Window: the last **30 days**. For threads with a 🌀 contact (customer) that en
 (an old customer ask that ended on their side is still open, however old).
 
 **Texts (iMessage/SMS).** `~/Library/Messages/chat.db`, opened read-only (`sqlite3 'file:...?mode=ro' -uri`, or
-`sqlite3.connect("file:...?mode=ro", uri=True)`). Scan **every** one-to-one thread from the window where they spoke
-last, not only 🌀 contacts: unsaved numbers and untagged people ask for work too.
+`sqlite3.connect("file:...?mode=ro", uri=True)`). Scan **every** one-to-one thread from the window, whichever
+side spoke last (Trevor-spoke-last threads feed *Stale, not resolved*), not only 🌀 contacts: unsaved numbers and
+untagged people ask for work too.
 - Many sent texts have `text` NULL and live only in `attributedBody`; a raw query shows them as "[attachment]". Decode
   every such row with messageManager's `decode_attributed_body`
   (`~/Developer/repos/python/messageManager/message_manager/core/imessage.py`) before deciding who spoke last.
@@ -54,7 +55,8 @@ four digits. A number saved in Contacts means they already know Trevor, so a dra
 
 Every yes/no about the text itself follows the Jev rule in global CLAUDE.md: ask Jev, and use Claude only to write the
 drafts. Pipe one line per person (name, source, last few messages, who spoke last) through
-`~/.claude/scripts/jev-rank.py "<question>" --min 0.5` and treat a listed line as yes. Questions:
+`~/.claude/scripts/jev-rank.py "<question>" --min 0.5` and treat a listed line as yes. Flatten each message's newlines
+to single spaces first, so each person is exactly one line. Questions:
 - "Is this a work ask about printing, an order, a quote, pricing, artwork, pickup or payment?"
 - "Does the last message need a reply from Trevor?"
 - "Is this work resolved (order placed, paid or picked up, or a clear thanks, all set)?"
