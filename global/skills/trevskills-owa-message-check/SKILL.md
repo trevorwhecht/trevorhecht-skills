@@ -38,7 +38,9 @@ Keep each call's number and date (Core Data dates are seconds since 2001-01-01) 
 
 Drop these before any judgement:
 - Contacts tagged 📦 (supplier/vendor/outsourcing) or 💧 (fellow printer).
-- Family and friends chatter, social-only contacts.
+- Family and friends chatter, social-only contacts. A 🌀 tag can be wrong: before listing someone as a customer, check
+  the thread reads like work. A friend with a stray 🌀 is skipped and named in the reply so Trevor can fix the tag.
+  Never draft work texts to friends.
 - Tapbacks/reactions, short codes and 2FA codes, group chats.
 - Newsletters, receipts, notifications, marketing mail.
 
@@ -66,7 +68,8 @@ and decide by reading the short list yourself, marking those rows "(no Jev)".
 
 Then place each person:
 - **They spoke last, a call after their last message** (call log, same number) → *Maybe sorted by a call*. Its draft
-  is a short check-in to send only if the call didn't sort it.
+  answers their open item from their last message, written as if the call never happened; it never mentions the call
+  and never asks "all good?".
 - **They spoke last, a work ask** → *Order asks waiting*. Order asks get a reply the same day, so they go first.
 - **They spoke last, needs a reply, not a work ask** → *Other replies waiting*.
 - **Trevor spoke last, not resolved, quiet 3+ days, within 30 days** → *Stale, not resolved*.
@@ -106,8 +109,8 @@ one short line each.
 
 Every row in all four tables gets a draft in its **Draft** cell, written with the `trevskills-email` skill (Trevor's
 voice, the OWA profile) for the channel they last used. One line per cell: a multi-line email draft is written on one
-line with its greeting and sign-off kept. Stale rows get a short nudge; *Maybe sorted by a call* rows get a short
-check-in to send only if the call didn't sort it.
+line with its greeting and sign-off kept. Stale rows get a short nudge; *Maybe sorted by a call* rows get a draft that
+answers their open item from their last message, as if the call never happened (no mention of the call, no "all good?").
 
 A step Trevor must do first goes in front in italics (e.g. *Update quote 311 first.*). An Instagram row whose last DM
 from them is over 24 h old starts with *Send in the Instagram app (past 24 h).* (the API rejects replies after 24 h).
