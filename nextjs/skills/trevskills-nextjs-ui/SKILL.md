@@ -62,7 +62,7 @@ A HeroUI project has no sub-skill; read `references/heroui.md`, then the compone
 | `references/mobile.md` | Phones and iPads: layout findings, viewport hook, review widths, touch, keyboard, zoom | `## Mobile UI`, `### Mobile layout findings`, `#### One viewport hook`, `#### Review widths`, `### Touch Targets`, `### Keyboard Behavior`, `### Scroll Behavior`, `### Input Font Size`, `### Hover-Only Interactions`, `### Edge Spacing` |
 | `references/modals.md` | Placement under the nav, shared class strings, safe areas, background scroll | `### Modal Placement — centred when short, pinned under the nav when tall`, `### Modals and Safe Areas` |
 | `references/forms.md` | Errors, validation timing, keyboards, autofill, submit and confirm | `## Forms` (incl. units on money and percent inputs) |
-| `references/styling.md` | Theme variables, Tailwind 3 vs 4, shadcn classes, layout, scrollbars, backgrounds | `## No Scrollbars Until the Full Page Is Utilized`, `## Never Transparent Backgrounds`, `## Tailwind 4 + shadcn Compatibility`, `## Styling` |
+| `references/styling.md` | Theme variables, Tailwind 3 vs 4, shadcn classes, layout, scrollbars, backgrounds | `## No Scrollbars Until the Full Page Is Utilized`, `## Never Transparent Backgrounds`, `## Slop ban list`, `## Tailwind 4 + shadcn Compatibility`, `## Styling` |
 | `references/accessibility.md` | Contrast, focus, icons, motion, skeleton loaders | `## Accessibility`, `## Animation`, `## Skeleton Loaders` |
 | `references/links.md` | Descriptive share URLs and Open Graph images | `## Shareable Links — Descriptive URLs`, `## Shareable Links — Open Graph Metadata` |
 
@@ -83,6 +83,7 @@ Before creating any new component:
 | Edit number in a table cell | One shared inline input (tables.md "Inline-edit number cell") |
 | Viewport-dependent behaviour | The app's one `useIsDesktop` hook (mobile.md) |
 | Color | Theme variable (styling.md "Styling") |
+| Decorative styling | none from the Slop ban list (styling.md) |
 | Touch target | ≥ 44px (UB-15) |
 | Full-height container | `min-h-dvh` / `h-dvh` (UB-9) |
 | Modal footer buttons | `pb-[max(1rem,env(safe-area-inset-bottom))]` (UB-11) |

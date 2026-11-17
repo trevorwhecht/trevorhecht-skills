@@ -21,6 +21,26 @@ Every card, dialog, sheet, dropdown, popover, tooltip and floating element decla
 | Dialog / modal / page content | `bg-(--color-background)` |
 | Card / sidebar / dropdown | `bg-(--color-surface)` |
 
+## Slop ban list
+
+These are the tells that make a page read as AI made. Never use them unless Trevor asks. Applies to
+every screen; customer facing pages first.
+
+- Eyebrow labels (a small caps line above a heading)
+- Monospace uppercase text as decoration
+- A random serif font the theme does not name
+- Purple gradients, or purple as a default accent (the theme's colours win: ui-theme.md / theme variables)
+- Beige backgrounds
+- 01 / 02 / 03 step counters
+- Glowing orbs, blurred colour blobs
+- Shockwave rings or circles popping out of things
+- Decorative particles
+- Long thin decorative lines
+- Em dashes in any UI text (en dashes and hyphens as dashes too; matches the public copy rule)
+- In motion: generic moves with no purpose, such as an icon floating up
+
+Source: Leon Lin's Cook skill, `references/rules.md` (github.com/Leonxlnx/cook).
+
 ## Tailwind 4 + shadcn Compatibility
 
 **Problem:** shadcn installs CSS variables like `--popover`, `--muted`, `--accent` in `:root`. Tailwind 4 needs `--color-{name}` in `@theme inline` to generate `bg-{name}` / `text-{name}` utilities. Where the names don't match, the shadcn utility classes are silently transparent/missing.
