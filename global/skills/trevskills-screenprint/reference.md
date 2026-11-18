@@ -23,7 +23,8 @@ Conventions used throughout:
 - **Station / pallet / platen** = the board the garment is loaded on. Station count = max garments on the
   press at once. Stations = heads + non-head stations (load/unload) [1].
 - **Load / unload station** = station with no head. One shared station is enough for a single operator;
-  separate load and unload stations speed up two-person crews [1].
+  separate load and unload stations speed up two-person crews [1]. Larger automatics have separate load and
+  unload stations, and no control panel over the load station like the Brown automatics (Trevor, 2026-11-18).
 - **Index** = the carousel rotating every pallet one position. Auto prints all heads simultaneously at each
   dwell, then indexes. Throughput of an auto is set by (index time + longest head dwell) per index, NOT
   by color count — more colors do not slow an auto (they do slow a manual) [2].
@@ -61,7 +62,7 @@ Conventions used throughout:
 ### Manual vs automatic
 | Aspect | Manual | Automatic |
 |---|---|---|
-| Who moves | Operator rotates heads/platens, pulls every stroke | Motor/air indexes; squeegees driven |
+| Who moves | Operator rotates heads/platens and makes every stroke, push or pull; Trevor pushes, has started pulling (Trevor, 2026-11-18) | Motor/air indexes; squeegees driven |
 | Heads | Typically 1–8 colors, 1–8 stations; often "all heads down" (colors = stations) [1] | Always more stations than colors [1] |
 | Heads at rest | Every head not printing rests up at an angle on springs, with its screen lifted; only the head in use is pulled down for a stroke (Trevor, 2026-11-18) | n/a |
 | Flash | Swing-over flash, operator times it (seconds); the Kruzer has no built-in flash; a manual job that needs one is flashed with a flash that takes no head (Trevor, 2026-11-18) | Flash occupies a head; timed per index |
