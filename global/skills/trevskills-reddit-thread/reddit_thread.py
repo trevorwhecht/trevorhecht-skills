@@ -52,6 +52,8 @@ def format_thread(data):
         "https://www.reddit.com%s" % post.get("permalink", ""),
         "",
     ]
+    if post.get("url_overridden_by_dest"):
+        lines[-1:] = ["link: %s" % post["url_overridden_by_dest"], ""]
     if post.get("selftext"):
         lines += [post["selftext"], ""]
 
