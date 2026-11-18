@@ -63,12 +63,15 @@ Conventions used throughout:
 |---|---|---|
 | Who moves | Operator rotates heads/platens, pulls every stroke | Motor/air indexes; squeegees driven |
 | Heads | Typically 1–8 colors, 1–8 stations; often "all heads down" (colors = stations) [1] | Always more stations than colors [1] |
+| Heads at rest | Every head not printing rests up at an angle on springs, with its screen lifted; only the head in use is pulled down for a stroke (Trevor, 2026-11-18) | n/a |
 | Flash | Swing-over flash, operator times it (seconds); the Kruzer has no built-in flash; a manual job that needs one is flashed with a flash that takes no head (Trevor, 2026-11-18) | Flash occupies a head; timed per index |
 | Consistency | Varies with operator fatigue | Same stroke every time → can use higher mesh, even deposits [11] |
 | Crew | 1 per press [2] | 2 typical at speed (loader + unloader/catcher) [2]; 3 recommended (load, unload, watcher) [12] |
 | Speed | 40–100 PPH [2] | 500–800 PPH sustainable [2] |
 | Price (2010s) | ~$1k–$5k [2][13] | entry ~$34k [2]; $20k–$100k [13] |
 | Utilities | None (except flash) | Electric + often compressed air (§8) |
+
+The M&R Kruzer holds its screens with side clamps, not rear clamps (Trevor, 2026-11-18).
 
 ### Sources
 1. https://anatol.com/blog/which-screen-printing-press-configuration-is-the-best-fit-for-your-screen-printing-shop
