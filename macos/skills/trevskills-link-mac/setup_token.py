@@ -44,7 +44,7 @@ while time.time() < deadline:
         print("code sent", flush=True)
     (D / "screen.txt").write_text(re.sub(r"sk-ant-\S+", "[TOKEN]", flat[-1500:]))
     # match before newlines are removed, or the next line ("Store this token securely") glues on
-    t = re.search(r"sk-ant-oat01-[A-Za-z0-9_\-]{20,}", ansi(buf))
+    t = re.search(r"sk-ant-oat01-[A-Za-z0-9_\-]{20,}(?=[\r\n])", ansi(buf))
     if t:
         p = subprocess.run(["ssh", alias, f"umask 077; cat > {dest}; chmod 600 {dest}"], input=t.group(0).encode())
         print("token saved" if p.returncode == 0 else "token save FAILED", flush=True)
