@@ -78,6 +78,7 @@ Restart Claude Code afterward.
 | | |
 |---|---|
 | **trevskills-mac-cleanup** | Disk space, bloated "System Data", sluggishness, runaway processes, Adobe junk, iCloud offloading, adware persistence checks. Ships two shell scripts. **Deletes files — read the warning below.** |
+| **trevskills-link-mac** | Brings another Mac online as a scrum worker: SSH alias and allow rule, headless Claude login over SSH with `claude setup-token` (no walk to the machine), then `shop.py setup`. Ships `setup_token.py` (stdlib Python 3). |
 | **trevskills-owa-usage** | `/trevskills-owa-usage` shows how the shared OWA Claude account's current week (Wednesday 11:00 to Wednesday 11:00) splits between two Macs: weighted tokens, share, points of the 7d limit and $ of the $200 plan. The other Mac is counted over `ssh`. `report` keeps a monthly `Claude Usage/YYYY-MM.md` in iCloud Drive with one row per week, and `install` loads a LaunchAgent that runs it hourly. Ships `owa_usage.py` (stdlib Python 3.9+). |
 | **trevskills-timecard** | Turns pasted "Time in" / "Time out" timestamps into Apple Calendar events for a work shift. |
 
