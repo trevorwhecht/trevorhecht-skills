@@ -63,7 +63,7 @@ Conventions used throughout:
 |---|---|---|
 | Who moves | Operator rotates heads/platens, pulls every stroke | Motor/air indexes; squeegees driven |
 | Heads | Typically 1–8 colors, 1–8 stations; often "all heads down" (colors = stations) [1] | Always more stations than colors [1] |
-| Heads at rest | Every head not printing rests up at an angle on springs, with its screen lifted; only the head in use is pulled down for a stroke (Trevor, 2026-11-18) | Heads stay up until the machine indexes them down |
+| Heads at rest | Every head not printing rests up at an angle on springs, with its screen lifted; only the head in use is pulled down for a stroke (Trevor, 2026-11-18) | n/a |
 | Flash | Swing-over flash, operator times it (seconds); the Kruzer has no built-in flash; a manual job that needs one is flashed with a flash that takes no head (Trevor, 2026-11-18) | Flash occupies a head; timed per index |
 | Consistency | Varies with operator fatigue | Same stroke every time → can use higher mesh, even deposits [11] |
 | Crew | 1 per press [2] | 2 typical at speed (loader + unloader/catcher) [2]; 3 recommended (load, unload, watcher) [12] |
