@@ -17,8 +17,8 @@ Brings a new Mac online as a scrum worker with one human visit to it. The automa
    - Open that URL in this Mac's signed-in Chrome (the profile for that account, see `reference_chrome_profiles.md`), click Authorize, read the code from the platform.claude.com callback page, write it to `code.txt` in the same folder.
    - The script types the code (Enter as a separate write: Ink reads one chunk ending in `\r` as a paste) and pipes the token straight into the remote file. It never prints the token; never read it out.
    - Verify: `ssh <alias> 'CLAUDE_CODE_OAUTH_TOKEN="$(cat ~/.claude-owa/oauth-token)" CLAUDE_CONFIG_DIR=~/.claude-owa claude -p "reply with the word ok" --model haiku --max-turns 1'` answers ok (main: `~/.claude/oauth-token`, no config dir). Use the full path to `claude` if it is not on the non-interactive PATH.
-5. **Then** `python3 ~/.claude/skills/trevskills-scrum/shop.py setup`, repeated until every step is ok.
-6. **One worker only.** `shop.py` supports a single alias (`ALIAS = "shopmac"`). A second worker Mac needs the trevskills-scrum backlog item "support more than one worker Mac" first; say so to Trevor instead of linking it.
+5. **Register the worker.** Append one line `<alias> <max jobs> <account>,<account>` (e.g. `shopmac 2 owa,main`) to `~/.claude/trevskills-scrum/workers.txt`. When the file is missing, write `shopmac 2 owa,main` first, then append the new line. Skip an alias already listed.
+6. **Then** `python3 ~/.claude/skills/trevskills-scrum/shop.py setup <alias>`, repeated until every step is ok.
 
 ## Gotchas
 
