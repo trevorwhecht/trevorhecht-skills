@@ -9,6 +9,8 @@ Brings a new Mac online as a scrum worker with one human visit to it. The automa
 
 ## Steps
 
+**Over ssh first.** Once `ssh <alias> true` works, do every step on that Mac over ssh from here, even when Trevor asks for a "handoff text" (Trevor 2026-11-18). An iMessage handoff is only for what needs someone at that Mac's screen (Remote Login, the first key, a GUI permission prompt), and the reply says why.
+
 1. **Specs, once.** One iMessage handoff to the Mac's Apple ID asking for model, macOS, RAM, user name, IP. Trevor pastes it into that Mac's Claude. Never more than one trip to the machine.
 2. **The one visit, on that Mac:** turn on Remote Login; append this Mac's `~/.ssh/id_rsa.pub` to its `~/.ssh/authorized_keys`; install Claude Code and sign in both accounts (main, and OWA with `CLAUDE_CONFIG_DIR=~/.claude-owa`); install Google Chrome (Playwright refuses its own Chromium on older macOS but works with `channel: "chrome"`).
 3. **Here:** add to `~/.ssh/config`: `Host <alias>`, `HostName <name>.local`, `BatchMode yes`. Ask Trevor, then add the allow rule `Bash(ssh <alias>:*)` to `~/.claude/settings.local.json` (auto mode blocks any other remote exec). Optional Tailscale: join as `tag:shop` with no outgoing grants so the worker cannot see this Mac's dashboard.
