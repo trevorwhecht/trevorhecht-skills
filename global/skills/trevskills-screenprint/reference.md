@@ -63,7 +63,7 @@ Conventions used throughout:
 |---|---|---|
 | Who moves | Operator rotates heads/platens, pulls every stroke | Motor/air indexes; squeegees driven |
 | Heads | Typically 1–8 colors, 1–8 stations; often "all heads down" (colors = stations) [1] | Always more stations than colors [1] |
-| Flash | Swing-over flash, operator times it (seconds); the shop's manual has no flash (see §10) | Flash occupies a head; timed per index |
+| Flash | Swing-over flash, operator times it (seconds); the Kruzer has no built-in flash; a manual job that needs one is flashed with a flash that takes no head (Trevor, 2026-11-18) | Flash occupies a head; timed per index |
 | Consistency | Varies with operator fatigue | Same stroke every time → can use higher mesh, even deposits [11] |
 | Crew | 1 per press [2] | 2 typical at speed (loader + unloader/catcher) [2]; 3 recommended (load, unload, watcher) [12] |
 | Speed | 40–100 PPH [2] | 500–800 PPH sustainable [2] |
@@ -114,7 +114,7 @@ fits(job)            = required_heads(job) <= C            (single revolution)
 - 6/7 = 6 heads, 7 stations → 1 load/unload station, 0 spare heads.
 - A dark-garment job needs a flashed underbase → one head becomes the flash → 5 heads remain for screens.
 - Those 5 screens = underbase + 4 top colors (no cool-down), or UB + 3 colors + cool-down.
-- Only wet-on-wet (no flash at all, e.g. light garment or no underbase) uses all 6 heads as colors [1][6].
+- Only wet-on-wet (no flash, e.g. light garment or no underbase) uses all 6 heads as colors [1][6].
 - Some top colors (yellow, gold) are thin and cover poorly over a single UB hit; shops re-flash or print
   them last [6] → costs another head.
 
@@ -131,8 +131,8 @@ Formula: top_colors = C − 1 (UB) − flashes − cooldowns. Double-hit UB (two
 
 ### Underbase: one screen on a manual, two on an auto
 - Manual: print UB, swing flash over the same platen, print UB again with the SAME screen (PFP). The platen
-  never leaves the head, so one screen does both hits. In this shop the manual has no flash (see §10): a
-  manual PFP needs an external or borrowed flash, or the AP-67J, or is a no-flash single hit.
+  never leaves the head, so one screen does both hits. The Kruzer has no built-in flash; a manual job
+  that needs one is flashed with a flash that takes no head (Trevor, 2026-11-18).
 - Auto: a pallet visits each head once per revolution. A second UB hit after the flash must come from a
   different head → a second, identical UB screen ("UB1, flash, UB2") — or a second revolution via a
   sequencing program (Revolver) at a speed penalty [7][8].
@@ -209,6 +209,11 @@ Anatol survey of ink makers (quartz flash) [9]:
 - Starting settings: plastisol/cotton 2.5 s at max intensity or 3.5 s at intensity 4; poly/nylon 2 s at
   intensity 4; WB/silicone 3.5–4 s at intensity 4 [9].
 - Pallet preheat 120°F–160°F [9].
+- Pallet heat (Trevor, 2026-11-17): long flashes heat the pallets (boards). Top colors on a hot pallet dry in
+  the screen and print grainy, worse later in the run. Target pallets about 130°F, no hotter. On poly, shorten
+  the flash time and turn the conveyor dryer temp down a little (sometimes runs the 130°F for the flash, works
+  great). On a manual, flashing every rotation makes pallets piping hot and overheats the ink: it feels like
+  plastic or a cheap heat transfer, and overheated water-based ink feels like a sticker.
 - Ink maker examples: Wilflex Epic Rio colors flash 220°F 3–5 s, cure 266–320°F [10]; Epic Matte Black flash
   160°F 3–5 s, cure 320°F [11]; Epic Quick White flash 220°F, cure 300°F [11].
 - Conflicting: Printable Press gives plastisol gel 240–270°F surface [12].
@@ -258,15 +263,19 @@ HD = heavy) `(unverified)`.
 | Plastisol top colors (spot) | 156–230 | 230 ok on top colors/detail; 230 not advised for plastisol where opacity needed [4] |
 | Sim process top colors | 230–305 | forum: auto UB 230, tops 230/305; manual UB 156, tops 305 [8][9] |
 | Fine halftones / 4CP | 230–305 (355 for 65+ LPI) | [5] |
-| Water-based | 156–230 typical; 110–225 TPI range (Permaset Aqua) | 156 can over-deposit and bleed [4]; forum: 156–160 for HSA white, 200–230 for RFU [10] |
+| Water-based | 156–230 typical; 110–225 TPI range (Permaset Aqua) | 156 can over-deposit and bleed [4]; forum: 156–160 for HSA white, 200–230 for RFU [10]. Shop LSA (Matsui 301 RC, mostly Clear 301C base) on the manual (Trevor, 2026-11-17): a much better opaque print on a 110 or 125 with flood, hit, hit; on a 150 or 160 it sometimes needed flood, hit, flood, hit, which on a 1,000 piece job adds hours (14 became 16 to 18). Shop practice inside the 110–225 range |
 | Discharge | 110–230; 110 or 156 for discharge white [5]; Matsui Alpha 110–230 [10] | thin ink → 230 also common [5] |
 | Specialty (puff, glitter, HD) | low mesh, 60-dur squeegee | [11] (exact counts unverified: glitter 40–86) |
 | Poly blocker grey | 86–155 | [12] |
+
+- 160 is the play-it-safe middle mesh when unsure whether a print needs low or high (Trevor, 2026-11-17). A beginner who can buy only two or three screens should get all 160s (Trevor, 2026-11-17).
+- White UB (Trevor, 2026-11-17): low-mesh UB lays down much white, so the print is thick (felt on the back) and needs a long flash. A higher-mesh UB lays less white, a thinner layer and a shorter flash, the shop's reason for 200–230 UB on the auto (§10).
 
 ### Tension
 - 25 N/cm = "good" (Ryonet) [13]. Ranges by mesh: 15–20 N/cm (40–86), 20–25 (110–160), 25–30 (200–305) [14].
   25–35 N/cm general production; 30–40 halftones [14]. Forum: ≥20 N/cm minimum, benefits up to ~35 [15].
 - Practitioner on auto: "mid 20s or better" [16].
+- Check tension on screens a supplier burns for you; Trevor's pre-burned jumbo screens arrived way off (Trevor, 2026-11-17). All screens in a multicolor print need the same tension; too loose causes several problems (Trevor, 2026-11-17).
 - Static frames lose tension over time; retensionable (roller) frames can be re-tightened `(general)`.
 
 ### Sources
@@ -355,6 +364,7 @@ only [15][16]. Vastex: adding heat chambers raises capacity in direct proportion
 - When dryer is the bottleneck: press output > dryer PPH → operator slows/pauses press, or stacks printed
   goods (only possible after a full cure — wet prints can't be stacked) → effective job rate =
   min(press_pph, dryer_pph_for_ink, crew_load_rate) `(derived)`.
+- Layout (Trevor, 2026-11-17): the printer stays within one step of everything, ideally none. Put the print station right next to the start of the dryer conveyor, with a cart or table within arm's reach of the print station.
 - Manual-shop dryers: entry dryers (100–300 PPH plastisol) easily keep up with 1–2 manuals (40–100 PPH each)
   but cap WB to 45–185 PPH [19][20][21].
 
@@ -485,7 +495,7 @@ Evaluate each press for a job; reject on hard constraints, then rank by estimate
 1. **Head count**: `screens + flashes + cooldowns <= heads` (single revolution) — §2. Allow
    `revolutions = 2` only if the press supports sequencing (M&R Revolver etc.) and apply speed ÷ 2.
 2. **Flash availability**: dark garment / UB job needs a flash unit on (or available for) that press; count
-   flash units owned per press. The shop owns one flash, the AP-67J built-in; none for the manual (§10).
+   flash units owned per press. The AP-67J's flash is built in; the manual has none built in, and a job that needs one uses a flash that takes no head (§10, Trevor, 2026-11-18).
 3. **Image size ≤ press max print area** (and screen frame fits). Examples: M&R Sportsman EX 4045 = 16"x18",
    5050 = 20"x20" (page overview also mentions 20"x28") [1]; ROQ YOU 16"x20" [2]; Brown ElectraPrint Jr
    20"x24" frames [3]; MHM Matrix 20x28 / 28x40 / 31x40 [4].
@@ -670,15 +680,14 @@ Evaluate each press for a job; reject on hard constraints, then rank by estimate
 ## 10. Open questions for the shop owner
 
 ### Already answered by Trevor (onewitharts, 2026-10-24). Use these; do not re-ask.
-- Presses: an **M&R Kruzer 6C/4S** manual (6 colours / 4 stations) with **no flash of its own**, and a
-  **Brown AP-67J** ("AP67jr") automatic, 6 heads / 7 pallets. The AP-67J's built-in flash is the only flash
-  the shop owns. On the auto a flash takes a head: 6 colours only wet-on-wet, 5 with a flash.
+- Presses: an **M&R Kruzer 6C/4S** manual (6 colours / 4 stations) with **no built-in flash** (a manual job that needs one is flashed with a flash that takes no head; Trevor, 2026-11-18), and a
+  **Brown AP-67J** ("AP67jr") automatic, 6 heads / 7 pallets. The AP-67J's flash is built in. On the auto a flash takes a head: 6 colours only wet-on-wet, 5 with a flash.
 - Presses index to the right by default (some newer ones go either way).
 - The Brown ElectraPrint manual is the claude.ai skill `trevskills-brown-electraprint`.
 - Dryers: manual → BBC forced-air 8 ft ("Black Body"), cures waterbased (1:30–2:00 dwell) and plastisol.
   Auto → BBC Little Buddy, plastisol only for now. BBC Aeolus planned.
 - Underbase on the auto = two screens (UB on head 1, flash head 2, cool-down head 3 if available, colours
-  after). On the manual = one screen on the same platen (the manual has no flash).
+  after). On the manual = one screen on the same platen (the Kruzer has no built-in flash; Trevor, 2026-11-18).
 - Manual rate ≈ 100 shirts per 4 hours on a dark-garment print-flash-print job (≈25 PPH); black ink with
   no flash is much faster.
   Auto rate unknown until measured; "500/hr" claims are a label, never a default.
