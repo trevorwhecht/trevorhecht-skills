@@ -114,7 +114,7 @@ fits(job)            = required_heads(job) <= C            (single revolution)
 - 6/7 = 6 heads, 7 stations → 1 load/unload station, 0 spare heads.
 - A dark-garment job needs a flashed underbase → one head becomes the flash → 5 heads remain for screens.
 - Those 5 screens = underbase + 4 top colors (no cool-down), or UB + 3 colors + cool-down.
-- Only wet-on-wet (no flash at all, e.g. light garment or no underbase) uses all 6 heads as colors [1][6].
+- Only wet-on-wet (no flash, e.g. light garment or no underbase) uses all 6 heads as colors [1][6].
 - Some top colors (yellow, gold) are thin and cover poorly over a single UB hit; shops re-flash or print
   them last [6] → costs another head.
 
