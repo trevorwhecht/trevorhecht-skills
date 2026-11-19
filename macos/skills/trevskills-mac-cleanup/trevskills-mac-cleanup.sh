@@ -498,7 +498,7 @@ proc_reset() {
 
 # Shared memory/uptime summary — used by `processes` and the run `report`.
 # Sets globals MEM_UP_DAYS / MEM_SWAP_MB / MEM_RESTART so callers can reuse the numbers.
-MEM_UP_DAYS=0; MEM_SWAP_MB=0; MEM_RESTART=0
+MEM_UP_DAYS=0; MEM_SWAP_MB=0
 mem_summary() {
   local comp_mb wired_mb swap_int
   MEM_UP_DAYS=$(uptime | grep -oE 'up [0-9]+ day' | grep -oE '[0-9]+' | head -1); MEM_UP_DAYS=${MEM_UP_DAYS:-0}
