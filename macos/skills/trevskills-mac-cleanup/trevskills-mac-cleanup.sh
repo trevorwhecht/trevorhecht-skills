@@ -497,10 +497,10 @@ proc_reset() {
 }
 
 # Shared memory/uptime summary — used by `processes` and the run `report`.
-# Sets globals MEM_UP_DAYS / MEM_SWAP_MB so callers can reuse the numbers.
+# Sets globals MEM_UP_DAYS / MEM_SWAP_MB / MEM_RESTART so callers can reuse the numbers.
 MEM_UP_DAYS=0; MEM_SWAP_MB=0
 mem_summary() {
-  local comp_mb wired_mb
+  local comp_mb wired_mb swap_int
   MEM_UP_DAYS=$(uptime | grep -oE 'up [0-9]+ day' | grep -oE '[0-9]+' | head -1); MEM_UP_DAYS=${MEM_UP_DAYS:-0}
   MEM_SWAP_MB=$(sysctl -n vm.swapusage 2>/dev/null | grep -oE 'used = [0-9.]+M' | grep -oE '[0-9.]+' | head -1)
   MEM_SWAP_MB=${MEM_SWAP_MB:-0}
@@ -508,10 +508,15 @@ mem_summary() {
   wired_mb=$(vm_stat | awk '/Pages wired down/{gsub(/[^0-9]/,"",$NF); printf "%d", $NF*16384/1048576}')
   printf '  Uptime: %s day(s)   Swap used: %s MB   Compressed RAM: %s MB   Wired: %s MB\n' \
     "$MEM_UP_DAYS" "${MEM_SWAP_MB:-?}" "${comp_mb:-?}" "${wired_mb:-?}"
-  if [[ "$MEM_UP_DAYS" -ge 7 ]] || [[ "$(printf '%.0f' "${MEM_SWAP_MB:-0}")" -ge 2048 ]]; then
+  swap_int=$(printf '%.0f' "${MEM_SWAP_MB:-0}"); MEM_RESTART=0
+  if [[ "$MEM_UP_DAYS" -ge 7 ]] || { [[ "$swap_int" -ge 2048 ]] && [[ "$MEM_UP_DAYS" -ge 1 ]]; }; then
+    MEM_RESTART=1
     echo "  >>> RESTART RECOMMENDED — high uptime and/or heavy swap. A reboot clears"
     echo "      all swap and compressed memory instantly: the single biggest speed win."
     echo "      (Save open work first.)"
+  elif [[ "$swap_int" -ge 2048 ]]; then
+    echo "  Heavy swap, but you restarted within the last day: it comes from what is running"
+    echo "  now, so a restart will not help. Close heavy apps or let running jobs finish."
   fi
 }
 
@@ -656,8 +661,8 @@ do_report() {
   echo "== Your maintenance plan =="
   printf '  • Run this cleanup: %s\n' "$rec_freq"
   printf '    %s\n' "$rec_note"
-  if [[ "$MEM_UP_DAYS" -ge 7 ]]; then
-    printf '  • RESTART NOW-ISH: %s days uptime. Reboot weekly — it clears swap + the memory compressor, the biggest speed win.\n' "$MEM_UP_DAYS"
+  if [[ "$MEM_RESTART" -eq 1 ]]; then
+    printf '  • RESTART NOW-ISH: %s days uptime, %s MB swap. Reboot weekly — it clears swap + the memory compressor, the biggest speed win.\n' "$MEM_UP_DAYS" "$MEM_SWAP_MB"
   else
     echo "  • Restart weekly (you are fine right now). It clears swap + compressed memory before they pile up."
   fi
