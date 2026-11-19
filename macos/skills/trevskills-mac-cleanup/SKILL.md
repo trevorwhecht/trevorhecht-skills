@@ -105,7 +105,7 @@ Rules: list what you find first, then remove only what the user approves. Never 
 `./trevskills-mac-cleanup.sh processes` is read-only — it reports uptime, swap used, compressed RAM, top CPU + memory processes, per-app aggregate memory (Adobe/Chrome/etc.), and flags any running binary that lacks a valid Apple/Developer-ID signature (the malware check).
 
 **Diagnose the cause before quitting anything — quitting apps is usually NOT the real fix:**
-- **Uptime + swap is the #1 lever.** Many days of uptime with GBs of swap used and a full memory compressor means RAM has been churning to disk for weeks. **A restart clears all swap and the compressor instantly** — a far bigger win than quitting any single app. The report prints a RESTART RECOMMENDED banner when uptime ≥ 7 days or swap ≥ 2 GB.
+- **Uptime + swap is the #1 lever.** Many days of uptime with GBs of swap used and a full memory compressor means RAM has been churning to disk for weeks. **A restart clears all swap and the compressor instantly** — a far bigger win than quitting any single app. The report prints a RESTART RECOMMENDED banner when uptime ≥ 7 days, or swap ≥ 2 GB after at least 1 day up. Heavy swap within a day of a restart comes from what is running now, so the report says a restart will not help: close heavy apps or let running jobs finish.
 - **Dual heavy apps.** Illustrator + Photoshop open at once (plus Adobe's login-launched background services) is a legitimate multi-GB load. That's expected, not a leak.
 
 **Resetting stuck Apple helpers (`processes reset`) — run this every cleanup:**
