@@ -1,50 +1,19 @@
 """Restart advice in `report`. Run: python3 -m unittest discover -s macos/skills/trevskills-mac-cleanup -p 'test_*.py'"""
-import os
-import subprocess
-import tempfile
-import unittest
+import os, subprocess, tempfile, unittest
 from pathlib import Path
 
-SCRIPT = Path(__file__).resolve().parent / "trevskills-mac-cleanup.sh"
-UPTIME = {0: "13:38  up  4:36, 6 users, load averages: 9.1 8.2 7.0",
-          2: "13:38  up 2 days,  4:36, 6 users, load averages: 1.1 1.2 1.0",
-          8: "13:38  up 8 days,  4:36, 6 users, load averages: 1.1 1.2 1.0"}
-
-
-def report(days, swap_mb):
-    """Run `report` with stubbed uptime/swap and a throwaway HOME (report writes ~/.mac-cleanup)."""
+def report(up, swap_mb):  # stub uptime + swap; throwaway HOME because report writes ~/.mac-cleanup
     with tempfile.TemporaryDirectory() as tmp:
-        stubs = Path(tmp, "bin"); stubs.mkdir()
-        for name, out in (("uptime", UPTIME[days]),
-                          ("sysctl", f"total = 6144.00M  used = {swap_mb}.00M  free = 100.00M  (encrypted)")):
-            stub = stubs / name
-            stub.write_text(f"#!/bin/sh\necho '{out}'\n"); stub.chmod(0o755)
-        env = dict(os.environ, HOME=tmp, PATH=f"{stubs}:{os.environ['PATH']}")
-        return subprocess.run(["bash", str(SCRIPT), "report"], env=env, capture_output=True, text=True).stdout
-
+        for name, out in (("uptime", f"13:38  up {up}, 6 users"), ("sysctl", f"total = 6144.00M  used = {swap_mb}.00M")):
+            Path(tmp, name).write_text(f"#!/bin/sh\necho '{out}'\n"); Path(tmp, name).chmod(0o755)
+        env = dict(os.environ, HOME=tmp, PATH=f"{tmp}:{os.environ['PATH']}")
+        return subprocess.run(["bash", str(Path(__file__).with_name("trevskills-mac-cleanup.sh")), "report"],
+                              env=env, capture_output=True, text=True).stdout
 
 class RestartBanner(unittest.TestCase):
-    def test_heavy_swap_right_after_restart_says_restart_wont_help(self):
-        out = report(0, 3300)
-        self.assertNotIn("RESTART RECOMMENDED", out)
-        self.assertNotIn("RESTART NOW-ISH", out)
-        self.assertIn("a restart will not help", out)
-
-    def test_heavy_swap_after_a_day_recommends_restart(self):
-        out = report(2, 3300)
-        self.assertIn("RESTART RECOMMENDED", out)
-        self.assertIn("RESTART NOW-ISH", out)
-
-    def test_week_of_uptime_recommends_restart(self):
-        out = report(8, 100)
-        self.assertIn("RESTART RECOMMENDED", out)
-        self.assertIn("RESTART NOW-ISH", out)
-
-    def test_fresh_and_light_says_nothing(self):
-        out = report(0, 100)
-        self.assertNotIn("RESTART RECOMMENDED", out)
-        self.assertNotIn("a restart will not help", out)
-
-
-if __name__ == "__main__":
-    unittest.main()
+    def test_restart_advice(self):  # (uptime, swap MB, restart banner + plan line, "will not help" note)
+        for up, swap, restart, note in (("4:36", 3300, False, True), ("2 days,  4:36", 3300, True, False),
+                                        ("8 days,  4:36", 100, True, False), ("4:36", 100, False, False)):
+            out = report(up, swap)
+            got = ("RESTART RECOMMENDED" in out, "RESTART NOW-ISH" in out, "a restart will not help" in out)
+            self.assertEqual(got, (restart, restart, note), f"up {up}, swap {swap} MB")

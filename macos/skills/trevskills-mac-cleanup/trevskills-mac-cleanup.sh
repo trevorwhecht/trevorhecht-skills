@@ -508,7 +508,6 @@ mem_summary() {
   wired_mb=$(vm_stat | awk '/Pages wired down/{gsub(/[^0-9]/,"",$NF); printf "%d", $NF*16384/1048576}')
   printf '  Uptime: %s day(s)   Swap used: %s MB   Compressed RAM: %s MB   Wired: %s MB\n' \
     "$MEM_UP_DAYS" "${MEM_SWAP_MB:-?}" "${comp_mb:-?}" "${wired_mb:-?}"
-  # Heavy swap within a day of a restart comes from what is running now, so a reboot won't fix it.
   swap_int=$(printf '%.0f' "${MEM_SWAP_MB:-0}"); MEM_RESTART=0
   if [[ "$MEM_UP_DAYS" -ge 7 ]] || { [[ "$swap_int" -ge 2048 ]] && [[ "$MEM_UP_DAYS" -ge 1 ]]; }; then
     MEM_RESTART=1
