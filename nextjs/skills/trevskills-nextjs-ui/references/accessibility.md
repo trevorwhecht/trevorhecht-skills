@@ -32,6 +32,12 @@ Keep transitions fast and purposeful. Decorative-only animation is noise.
 - **Easing:** `ease-out` for entering elements, `ease-in` for exiting
 - **Reduced motion:** Always pair with `motion-reduce:transition-none`
 - **Loading states:** a layout-matched skeleton when loading exceeds 300ms; spinners are for action buttons only.
+- **Anticipation:** a control shows a pressed state (a small scale-down or darker fill) before the action runs.
+- **Follow through:** a moving element may overshoot slightly and settle, kept short.
+- **Arcs:** an element that travels across the screen moves on a curve, not a straight line.
+- **Secondary action:** an icon or count reacts together with the main change (a cart badge bumps when an item is added).
+- **Staging:** one thing moves at a time, and it is where the eye should go.
+- **Tap feedback:** every tap shows a visible response; a wait still gets the button spinner (UB-47).
 
 ```tsx
 // ✓ — performant, respects reduced motion
