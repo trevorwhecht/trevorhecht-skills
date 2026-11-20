@@ -133,8 +133,7 @@ def result(path, kind, name, report, error):
     """One report row's fields from one SkillSpector JSON report (or its error)."""
     r = {"name": name, "kind": kind, "path": short(path), "score": "-", "verdict": "SCAN FAILED", "top": cell(error or "")}
     if not error and report.get("execution_successful") is False:
-        error = "SkillSpector reported execution_successful false"
-        r["top"] = error
+        error, r["top"] = "execution_successful false", "execution_successful false"
     if not error:
         risk = report.get("risk_assessment", {})
         partial = (report.get("analysis_completeness") or {}).get("status", "complete") != "complete"

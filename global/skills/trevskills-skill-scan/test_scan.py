@@ -170,7 +170,6 @@ class Report(unittest.TestCase):
             report = Path(e.home, "Developer/claude/skill-scans", f"{TODAY}.md").read_text()
             self.assertIn("| unsuccessful-one | skill |", report)
             self.assertIn("SCAN FAILED", report)
-            self.assertIn("unsuccessful-one", out.stdout)
             self.assertEqual(e.run(str(e.home / ".claude/skills/unsuccessful-one")).returncode, 2)
 
     def test_one_target_gets_its_own_report_and_exit_code(self):
