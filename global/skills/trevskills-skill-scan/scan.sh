@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# scan.sh: static NVIDIA SkillSpector scan of Claude Code skills, agents and plugins.
+# scan.sh: static NVIDIA SkillSpector scan of Claude Code skills, agents, commands and plugins.
 # Read-only: it never uninstalls, moves or edits anything it scans.
 #
 #   scan.sh                  every installed skill, agent and plugin under ~/.claude and ~/.claude-owa
@@ -49,7 +49,7 @@ def walk(top):
 
 
 def installed():
-    """{real path: (kind, name)} for every skill, agent and plugin on both accounts."""
+    """{real path: (kind, name)} for every skill, agent, command and plugin on both accounts."""
     found = {}
     for root in (os.path.join(HOME, ".claude"), os.path.join(HOME, ".claude-owa")):
         for d, dirs, files in walk(os.path.join(root, "skills")):
@@ -61,6 +61,11 @@ def installed():
                 p = os.path.join(d, f)
                 if f.endswith(".md") and os.path.isfile(p):
                     found.setdefault(os.path.realpath(p), ("agent", f[:-3]))
+        for d, _, files in walk(os.path.join(root, "commands")):
+            for f in files:
+                p = os.path.join(d, f)
+                if f.endswith(".md") and os.path.isfile(p):
+                    found.setdefault(os.path.realpath(p), ("command", f[:-3]))
         try:
             with open(os.path.join(root, "plugins", "installed_plugins.json")) as fh:
                 plugins = json.load(fh).get("plugins", {})
@@ -127,6 +132,8 @@ def top_findings(issues, n=3):
 def result(path, kind, name, report, error):
     """One report row's fields from one SkillSpector JSON report (or its error)."""
     r = {"name": name, "kind": kind, "path": short(path), "score": "-", "verdict": "SCAN FAILED", "top": cell(error or "")}
+    if not error and report.get("execution_successful") is False:
+        error, r["top"] = "execution_successful false", "execution_successful false"
     if not error:
         risk = report.get("risk_assessment", {})
         partial = (report.get("analysis_completeness") or {}).get("status", "complete") != "complete"
