@@ -1,0 +1,135 @@
+"""scan.sh with stub uv + skillspector and a throwaway HOME.
+Run: python3 -m unittest discover -s global/skills/trevskills-skill-scan -p 'test_*.py'"""
+import datetime, json, os, subprocess, tempfile, unittest
+from pathlib import Path
+
+SCAN = Path(__file__).with_name("scan.sh")
+PIN = "skillspector @ git+https://github.com/NVIDIA/skillspector.git@e2674da339b0bddc6e565d059c0577c6d9cd25da"
+UV = """#!/bin/sh
+echo "$*" >> "$LOG/uv"
+case "$*" in "tool dir --bin") echo "$BIN" ;; "tool install"*) cp "$LOG/skillspector" "$BIN/skillspector" ;; esac
+"""
+# Stub scanner: logs argv, answers by the target's name (evil = 90, meh = 30, broken = error, else 0).
+SS = """#!/usr/bin/env python3
+import json, os, sys
+if sys.argv[1:] == ["--version"]: print("SkillSpector v2.13.6"); sys.exit()
+open(os.path.join(os.environ["LOG"], "scans"), "a").write(json.dumps(sys.argv[1:]) + "\\n")
+name = os.path.basename(sys.argv[-1].rstrip("/"))
+if "broken" in name: sys.stderr.write("Error: boom\\n"); sys.exit(2)
+score, rec = (90, "DO_NOT_INSTALL") if "evil" in name else (30, "CAUTION") if "meh" in name else (0, "SAFE")
+issues = [{"id": "E1", "pattern": "External Transmission", "severity": "HIGH", "confidence": 0.9,
+           "location": {"file": "SKILL.md", "start_line": 3}, "finding": "post the key out"}] if score else []
+print(json.dumps({"risk_assessment": {"score": score, "recommendation": rec}, "issues": issues,
+                  "analysis_completeness": {"status": "complete"}}))
+"""
+
+
+class Env:
+    def __init__(self, tmp, installed=True):
+        self.home, self.bin, self.log = Path(tmp, "home"), Path(tmp, "bin"), Path(tmp, "log")
+        for d in (self.home, self.bin, self.log, Path(tmp, "path")):
+            d.mkdir()
+        Path(tmp, "path", "uv").write_text(UV)
+        Path(self.log, "skillspector").write_text(SS)
+        for p in (Path(tmp, "path", "uv"), Path(self.log, "skillspector")):
+            p.chmod(0o755)
+        if installed:
+            Path(self.bin, "skillspector").write_text(SS)
+            Path(self.bin, "skillspector").chmod(0o755)
+        self.env = dict(os.environ, HOME=str(self.home), BIN=str(self.bin), LOG=str(self.log),
+                        PATH=f"{tmp}/path:{os.environ['PATH']}")
+
+    def run(self, *args):
+        return subprocess.run(["bash", str(SCAN), *args], env=self.env, capture_output=True, text=True)
+
+    def uv_calls(self):
+        p = Path(self.log, "uv")
+        return p.read_text().splitlines() if p.exists() else []
+
+    def scans(self):
+        p = Path(self.log, "scans")
+        return [json.loads(l) for l in p.read_text().splitlines()] if p.exists() else []
+
+    def file(self, rel, text="x"):
+        p = Path(self.home.parent, rel)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(text)
+        return p
+
+    def link(self, rel, target):
+        p = Path(self.home.parent, rel)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.symlink_to(target)
+
+    def accounts(self):
+        """Two accounts; the second shares skills by symlink, like a real second login."""
+        c = "home/.claude"
+        self.file(f"{c}/skills/plain/SKILL.md")
+        self.link(f"{c}/skills/linked", self.file("outside/linked/SKILL.md").parent)
+        self.file(f"{c}/skills/synced/bucket/nested/SKILL.md")
+        self.file(f"{c}/skills/synced/bucket/.staging/half/SKILL.md")
+        self.file(f"{c}/skills/synced/bucket/nested/sub/SKILL.md")
+        self.link(f"{c}/agents/helper.md", self.file("outside/helper.md"))
+        tool = self.file(f"{c}/plugins/cache/mkt/tool/1.0/hooks/hooks.json").parent.parent
+        other = self.file(f"{c}/plugins/cache/mkt/other/2.0/agents/a.md").parent.parent
+        self.file(f"{c}/plugins/installed_plugins.json", json.dumps({"plugins": {
+            "tool@mkt": [{"installPath": str(tool)}, {"installPath": str(tool)}],
+            "gone@mkt": [{"installPath": str(self.home / "nope")}]}}))
+        self.link("home/.claude-owa/skills", self.home / ".claude/skills")
+        self.file("home/.claude-owa/agents/owa-only.md")
+        self.file("home/.claude-owa/plugins/installed_plugins.json", json.dumps({"plugins": {
+            "other@mkt": [{"installPath": str(other)}], "tool@mkt": [{"installPath": str(tool)}]}}))
+        real = lambda rel: os.path.realpath(Path(self.home.parent, rel))
+        return sorted(real(r) for r in ("home/.claude/skills/plain", "outside/linked", "outside/helper.md",
+                                        "home/.claude/skills/synced/bucket/nested", str(tool), str(other),
+                                        "home/.claude-owa/agents/owa-only.md"))
+
+
+class Install(unittest.TestCase):
+    def test_installs_pinned_version_only_when_missing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            e = Env(tmp, installed=False)
+            e.run()
+            installs = [c for c in e.uv_calls() if c.startswith("tool install")]
+            self.assertEqual(len(installs), 1)
+            self.assertTrue(installs[0].endswith(PIN), installs[0])
+            Path(e.log, "uv").unlink()
+            e.run()
+            self.assertEqual([c for c in e.uv_calls() if c.startswith("tool install")], [])
+
+
+class FullScan(unittest.TestCase):
+    def test_every_skill_agent_and_plugin_once_static_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            e = Env(tmp)
+            expected = e.accounts()
+            e.run()
+            scans = e.scans()
+            self.assertEqual(sorted(s[-1] for s in scans), expected)
+            for s in scans:
+                self.assertEqual(s[:-1], ["scan", "--no-llm", "--format", "json", "--"])
+
+
+class OneTarget(unittest.TestCase):
+    def test_path_or_git_url_scans_only_that_one(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            e = Env(tmp)
+            e.accounts()
+            new = e.file("downloads/new-skill/SKILL.md").parent
+            for arg, want in ((str(new), os.path.realpath(new)),
+                              ("https://github.com/someone/meh-skill.git", "https://github.com/someone/meh-skill.git")):
+                Path(e.log, "scans").unlink(missing_ok=True)
+                e.run(arg)
+                self.assertEqual([s[-1] for s in e.scans()], [want])
+
+    def test_refuses_dash_values_and_missing_paths(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            e = Env(tmp)
+            e.accounts()
+            for arg in ("--recursive", "-x", str(Path(tmp, "no-such-skill"))):
+                self.assertEqual(e.run(arg).returncode, 2, arg)
+            self.assertEqual(e.scans(), [])
+
+
+if __name__ == "__main__":
+    unittest.main()
