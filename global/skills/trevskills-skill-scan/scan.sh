@@ -25,12 +25,14 @@ if [ "$("$SS" --version 2>/dev/null || true)" != "SkillSpector v$SS_VERSION" ]; 
     "skillspector @ git+https://github.com/NVIDIA/skillspector.git@$SS_COMMIT" >&2
 fi
 
-exec python3 - "$SS" "$@" <<'PY'
-import concurrent.futures as cf, json, os, re, subprocess, sys
+exec python3 - "$SS" "$SS_VERSION" "$@" <<'PY'
+import concurrent.futures as cf, datetime, json, os, re, subprocess, sys
 
-SS, args = sys.argv[1], sys.argv[2:]
+SS, VERSION, args = sys.argv[1], sys.argv[2], sys.argv[3:]
 HOME = os.path.expanduser("~")
 GIT_URL = re.compile(r"^(https?|ssh|git)://|^git@")
+SEVERITY = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
+WORST = {"DO_NOT_INSTALL": 0, "SCAN FAILED": 1, "CAUTION": 2, "SAFE": 3}
 
 
 def walk(top):
@@ -95,7 +97,76 @@ def given(arg):
     return {real: ("path", os.path.basename(real))}
 
 
+def cell(text):
+    return " ".join(str(text).split()).replace("|", "\\|")
+
+
+def short(p):
+    for h in (HOME, os.path.realpath(HOME)):
+        if p.startswith(h + "/"):
+            return "~" + p[len(h):]
+    return p
+
+
+def top_findings(issues, n=3):
+    """The n worst distinct findings: severity, rule, pattern, file:line and the matched text."""
+    picked, keys = [], set()
+    for i in sorted(issues, key=lambda i: (SEVERITY.get(i.get("severity"), 9), -(i.get("confidence") or 0))):
+        key = (i.get("id"), cell(i.get("finding", "")))
+        if key not in keys and len(picked) < n:
+            keys.add(key)
+            loc = i.get("location") or {}
+            match = cell(i.get("finding", "")).replace("`", "'")
+            match = match if len(match) <= 60 else match[:60] + "…"
+            picked.append(f"{i.get('severity')} {i.get('id')} {cell(i.get('pattern', ''))}, "
+                          f"{cell(loc.get('file', '?'))}:{loc.get('start_line', '?')}: `{match}`")
+    more = len(issues) - len(picked)
+    return "<br>".join(picked + ([f"+{more} more"] if more > 0 else []))
+
+
+def result(path, kind, name, report, error):
+    """One report row's fields from one SkillSpector JSON report (or its error)."""
+    r = {"name": name, "kind": kind, "path": short(path), "score": "-", "verdict": "SCAN FAILED", "top": cell(error or "")}
+    if not error:
+        risk = report.get("risk_assessment", {})
+        partial = (report.get("analysis_completeness") or {}).get("status", "complete") != "complete"
+        r.update(score=risk.get("score", 0), verdict=risk.get("recommendation", "?"),
+                 shown=risk.get("recommendation", "?") + (" (partial)" if partial else ""),
+                 top=top_findings(report.get("issues", [])))
+    return r
+
+
 targets = given(args[0]) if args else installed()
+results = []
 with cf.ThreadPoolExecutor(max_workers=4) as pool:
-    results = dict(zip(targets, pool.map(scan, targets)))
+    jobs = {pool.submit(scan, p): p for p in targets}
+    for n, job in enumerate(cf.as_completed(jobs), 1):
+        r = result(jobs[job], *targets[jobs[job]], *job.result())
+        results.append(r)
+        print(f"[{n}/{len(targets)}] {r['verdict']} {r['score']} {r['name']}", file=sys.stderr)
+results.sort(key=lambda r: (WORST.get(r["verdict"], 1), -(r["score"] if r["score"] != "-" else 0), r["name"]))
+hits = lambda verdict: [r for r in results if r["verdict"] == verdict]
+
+today = datetime.date.today().isoformat()
+out_dir = os.path.join(HOME, "Developer", "claude", "skill-scans")
+os.makedirs(out_dir, exist_ok=True)
+# A one-target scan gets its own file so it never replaces the day's full scan.
+suffix = "-" + re.sub(r"[^A-Za-z0-9._-]", "-", results[0]["name"]) if args else ""
+out = os.path.join(out_dir, f"{today}{suffix}.md")
+with open(out, "w") as fh:
+    fh.write(f"# Skill scan {today}{' of ' + args[0] if args else ''}\n\n"
+             f"SkillSpector {VERSION}, static pass only (`--no-llm`: no LLM, no API key). {len(results)} scanned: "
+             f"{len(hits('DO_NOT_INSTALL'))} do not install, {len(hits('CAUTION'))} caution, "
+             f"{len(hits('SAFE'))} safe, {len(hits('SCAN FAILED'))} failed. Nothing was uninstalled or edited.\n"
+             "Full detail for one row: `skillspector scan --no-llm <path>`.\n\n"
+             "| Name | Kind | Path | Score | Verdict | Top findings |\n|---|---|---|---|---|---|\n")
+    for r in results:
+        fh.write(f"| {cell(r['name'])} | {r['kind']} | `{cell(r['path'])}` | {r['score']} | "
+                 f"{r.get('shown', r['verdict'])} | {r['top']} |\n")
+
+print(f"Report: {short(out)}")
+for label, verdict in (("Do not install", "DO_NOT_INSTALL"), ("Scan failed", "SCAN FAILED")):
+    if hits(verdict) or verdict == "DO_NOT_INSTALL":
+        print(f"{label} ({len(hits(verdict))}):" + "".join(f"\n  {r['name']}  {r['path']}" for r in hits(verdict)))
+sys.exit(2 if hits("SCAN FAILED") else 1 if hits("DO_NOT_INSTALL") else 0)
 PY

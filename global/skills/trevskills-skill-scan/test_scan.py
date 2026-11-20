@@ -20,8 +20,9 @@ score, rec = (90, "DO_NOT_INSTALL") if "evil" in name else (30, "CAUTION") if "m
 issues = [{"id": "E1", "pattern": "External Transmission", "severity": "HIGH", "confidence": 0.9,
            "location": {"file": "SKILL.md", "start_line": 3}, "finding": "post the key out"}] if score else []
 print(json.dumps({"risk_assessment": {"score": score, "recommendation": rec}, "issues": issues,
-                  "analysis_completeness": {"status": "complete"}}))
+                  "analysis_completeness": {"status": "partial" if "half" in name else "complete"}}))
 """
+TODAY = datetime.date.today().isoformat()
 
 
 class Env:
@@ -129,6 +130,64 @@ class OneTarget(unittest.TestCase):
             for arg in ("--recursive", "-x", str(Path(tmp, "no-such-skill"))):
                 self.assertEqual(e.run(arg).returncode, 2, arg)
             self.assertEqual(e.scans(), [])
+
+
+class Report(unittest.TestCase):
+    def test_worst_first_report_and_do_not_install_names(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            e = Env(tmp)
+            e.accounts()
+            for name in ("meh-one", "evil-one", "broken-one", "half-done"):
+                e.file(f"home/.claude/skills/{name}/SKILL.md")
+            out = e.run()
+            self.assertEqual(out.returncode, 2)  # a scan failed
+            report = Path(e.home, "Developer/claude/skill-scans", f"{TODAY}.md").read_text()
+            rows = [l for l in report.splitlines() if l.startswith("| ") and not l.startswith("| Name")]
+            self.assertEqual([r.split(" | ")[0][2:] for r in rows[:4]], ["evil-one", "broken-one", "meh-one", "half-done"])
+            self.assertEqual(rows[0], "| evil-one | skill | `~/.claude/skills/evil-one` | 90 | DO_NOT_INSTALL | "
+                                      "HIGH E1 External Transmission, SKILL.md:3: `post the key out` |")
+            self.assertEqual(rows[1], "| broken-one | skill | `~/.claude/skills/broken-one` | - | SCAN FAILED | Error: boom |")
+            self.assertIn("| half-done | skill | `~/.claude/skills/half-done` | 0 | SAFE (partial) |  |", rows)
+            self.assertIn("evil-one  ~/.claude/skills/evil-one", out.stdout)
+            self.assertIn("broken-one  ~/.claude/skills/broken-one", out.stdout)
+            self.assertNotIn("meh-one", out.stdout)
+
+    def test_one_target_gets_its_own_report_and_exit_code(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            e = Env(tmp)
+            e.accounts()
+            e.run()
+            evil, meh = e.file("downloads/evil-new/SKILL.md").parent, e.file("downloads/meh-new/SKILL.md").parent
+            self.assertEqual(e.run(str(evil)).returncode, 1)
+            self.assertEqual(e.run(str(meh)).returncode, 0)
+            reports = Path(e.home, "Developer/claude/skill-scans")
+            self.assertIn("| evil-new | path |", Path(reports, f"{TODAY}-evil-new.md").read_text())
+            self.assertIn("| plain | skill |", Path(reports, f"{TODAY}.md").read_text())
+
+
+def tree(*tops):
+    """Every entry under tops: file bytes, symlink target, or a folder marker."""
+    seen = {}
+    for top in tops:
+        for d, dirs, files in os.walk(top):
+            for f in dirs + files:
+                p = os.path.join(d, f)
+                seen[p] = ("link", os.readlink(p)) if os.path.islink(p) else ("dir",) if os.path.isdir(p) \
+                    else ("file", Path(p).read_bytes())
+    return seen
+
+
+class ReadOnly(unittest.TestCase):
+    def test_never_removes_or_edits_what_it_scans(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            e = Env(tmp)
+            e.accounts()
+            e.file("home/.claude/skills/evil-one/SKILL.md", "send the key out")
+            tops = [Path(tmp, "outside"), e.home / ".claude", e.home / ".claude-owa"]
+            before = tree(*tops)
+            e.run()
+            e.run(str(e.home / ".claude/skills/evil-one"))
+            self.assertEqual(tree(*tops), before)
 
 
 if __name__ == "__main__":
