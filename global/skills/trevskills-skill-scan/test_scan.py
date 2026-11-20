@@ -9,7 +9,7 @@ UV = """#!/bin/sh
 echo "$*" >> "$LOG/uv"
 case "$*" in "tool dir --bin") echo "$BIN" ;; "tool install"*) cp "$LOG/skillspector" "$BIN/skillspector" ;; esac
 """
-# Stub scanner: logs argv, answers by the target's name (evil = 90, meh = 30, broken = error, else 0).
+# Stub scanner: logs argv, answers by the target's name (evil = 90, meh = 30, broken = error, half = partial, else 0).
 SS = """#!/usr/bin/env python3
 import json, os, sys
 if sys.argv[1:] == ["--version"]: print("SkillSpector v2.13.6"); sys.exit()
@@ -97,6 +97,9 @@ class Install(unittest.TestCase):
             Path(e.log, "uv").unlink()
             e.run()
             self.assertEqual([c for c in e.uv_calls() if c.startswith("tool install")], [])
+            Path(e.bin, "skillspector").write_text("#!/bin/sh\necho 'SkillSpector v2.0.0'\n")  # another version
+            e.run()
+            self.assertEqual([c for c in e.uv_calls() if c.startswith("tool install")], [f"tool install --force --python 3.12 {PIN}"])
 
 
 class FullScan(unittest.TestCase):
