@@ -690,6 +690,15 @@ Evaluate each press for a job; reject on hard constraints, then rank by estimate
 - The Brown ElectraPrint manual is the claude.ai skill `trevskills-brown-electraprint`.
 - Dryers: manual → BBC forced-air 8 ft ("Black Body"), cures waterbased (1:30–2:00 dwell) and plastisol.
   Auto → BBC Little Buddy, plastisol only for now. BBC Aeolus planned.
+- Water based on the Little Buddy was too slow: he had to blow a fan into the dryer and run each shirt through 2 to 3
+  times on the slowest speed, too slow for large orders. He then bought a forced air conveyor dryer twice the size
+  with twice the power draw and installed 50 amp power in the shop for it. He did not raise prices. (Trevor, 2026-11-19)
+- Water based in the screen: a light mister bottle of distilled water plus 1% retarder, move very quick, and keep the
+  boards (pallets) at or under 140 to 150°F, or the ink dries in the screen. (Trevor, 2026-11-19)
+- Plastisol is used only occasionally, mainly for specialty ink (puff, glow, shimmer). Water based is the default.
+  (Trevor, 2026-11-19)
+- Cleanup: water based needs no chemicals. Plastisol needs press wash sprayed and a lot of scrubbing, with gloves and a
+  high quality mask. (Trevor, 2026-11-19)
 - Underbase on the auto = two screens (UB on head 1, flash head 2, cool-down head 3 if available, colours
   after). On the manual = one screen on the same platen (the Kruzer has no built-in flash; Trevor, 2026-11-18).
 - Manual rate ≈ 100 shirts per 4 hours on a dark-garment print-flash-print job (≈25 PPH); black ink with
