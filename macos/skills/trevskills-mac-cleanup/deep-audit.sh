@@ -15,6 +15,38 @@ SIZE_THRESHOLD_MB="${LARGE_MB:-500}"   # large-file cutoff; override: LARGE_MB=1
 hr(){ printf '\n========== %s ==========\n' "$1"; }
 sz(){ du -sh "$1" 2>/dev/null | awk '{print $1}'; }
 
+# used_by <name>: where scrum projects or skills depend on an app (they launch apps headless, so
+# "Trevor never opens it" proves nothing). Prints "USED BY: a (file), b (SKILL.md)" or nothing.
+# Overrides for tests: PROJECTS_JSON (JSON array of repo paths), SKILL_DIRS (colon-separated).
+used_by(){
+  local name="$1" hits=() repo f d
+  [[ -n "$name" ]] || return 0
+  local pj="${PROJECTS_JSON:-${HOME_DIR}/.claude/trevskills-scrum/projects.json}"
+  if [[ -f "$pj" ]]; then
+    while IFS= read -r repo; do
+      [[ -d "$repo" ]] || continue
+      for f in scrum/project.md package.json compose.yaml compose.yml docker-compose.yml docker-compose.yaml; do
+        [[ -f "$repo/$f" ]] && grep -qiF -- "$name" "$repo/$f" 2>/dev/null && hits+=("$(basename "$repo") ($f)")
+      done
+    done < <(python3 -c 'import json,sys
+try:
+    [print(x) for x in json.load(open(sys.argv[1])) if isinstance(x, str)]
+except Exception:
+    pass' "$pj" 2>/dev/null)
+  fi
+  local dirs="${SKILL_DIRS:-${HOME_DIR}/.claude/skills:${HOME_DIR}/.claude-owa/skills}" IFS_OLD="$IFS"
+  IFS=':'; local dl=($dirs); IFS="$IFS_OLD"
+  for d in "${dl[@]}"; do
+    [[ -d "$d" ]] || continue
+    while IFS= read -r f; do
+      grep -qiF -- "$name" "$f" 2>/dev/null && hits+=("$(basename "$(dirname "$f")") (SKILL.md)")
+    done < <(find -L "$d" -name SKILL.md 2>/dev/null)
+  done
+  [[ ${#hits[@]} -gt 0 ]] || return 0
+  local out="" h; for h in "${hits[@]}"; do out+="${out:+, }$h"; done
+  echo "USED BY: $out"
+}
+
 audit_security() {
   hr "SECURITY / MALWARE PERSISTENCE (read-only)"
 
@@ -84,10 +116,14 @@ audit_systemdata() {
     "Mail downloads|${HOME_DIR}/Library/Containers/com.apple.mail/Data/Library/Mail Downloads"
     "Old installers in Downloads|${HOME_DIR}/Downloads"
   )
-  local item name path
+  local item name path u
   for item in "${pairs[@]}"; do
     name="${item%%|*}"; path="${item##*|}"
-    [[ -e "$path" ]] && printf '  %-40s %6s  %s\n' "$name" "$(sz "$path")" "$path"
+    [[ -e "$path" ]] || continue
+    printf '  %-40s %6s  %s\n' "$name" "$(sz "$path")" "$path"
+    if [[ "$name" == "Docker data" ]]; then
+      u="$(used_by Docker)"; [[ -n "$u" ]] && echo "     IN USE — do not remove. $u"
+    fi
   done
 
   echo "-- Local snapshots (often the biggest hidden 'System Data') --"
@@ -183,7 +219,7 @@ PY
 
 audit_unusedapps() {
   hr "APPS NOT OPENED IN ${UNUSED_DAYS:-180}+ DAYS (reinstallable; you decide)"
-  local app last days now; now="$(date +%s)"
+  local app last days now u; now="$(date +%s)"
   for app in /Applications/*.app; do
     [[ "$(defaults read "$app/Contents/Info" CFBundleIdentifier 2>/dev/null)" == com.apple.* ]] && continue
     last="$(mdls -name kMDItemLastUsedDate -raw "$app" 2>/dev/null)"
@@ -191,7 +227,9 @@ audit_unusedapps() {
     else days=$(( (now - $(date -j -f '%Y-%m-%d %H:%M:%S %z' "$last" +%s 2>/dev/null || echo "$now")) / 86400 ))
          [[ "$days" -lt "${UNUSED_DAYS:-180}" ]] && continue
     fi
+    u="$(used_by "$(basename "$app" .app)")"
     printf '  %6s  last used: %-6s  %s\n' "$(sz "$app")" "$days" "$app"
+    [[ -n "$u" ]] && printf '          IN USE — do not remove. %s\n' "$u"
   done | sort -rh
   echo "  '?' = macOS has no open date (never opened, or only launched in the background, e.g. Karabiner). Check before removing."
   echo "  Each app's data in ~/Library/Application Support goes with it; see 'audit orphans' after."
@@ -323,6 +361,7 @@ case "${1:-all}" in
   space)      audit_space ;;
   orphans)    audit_orphans ;;
   unusedapps) audit_unusedapps ;;
+  usedby)     used_by "${2:-}"; exit 0 ;;
   storage)    audit_space; audit_systemdata; audit_orphans; audit_unusedapps; audit_largefiles ;;
   all)        audit_security; audit_malware; audit_extensions; audit_systemdata; audit_orphans; audit_unusedapps; audit_largefiles ;;
   *) echo "Usage: deep-audit.sh [security|malware|extensions|systemdata|space|orphans|unusedapps|largefiles|storage|all]"; exit 1 ;;
