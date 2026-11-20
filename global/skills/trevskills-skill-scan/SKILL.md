@@ -1,6 +1,6 @@
 ---
 name: trevskills-skill-scan
-description: Security scan of Claude Code skills, agents and plugins with NVIDIA SkillSpector (static checks only, no API key) for prompt injection, hidden instructions, data and key exfiltration and other malicious patterns. Use when the user says "scan my skills", asks "is this skill safe", and before installing any skill, plugin or agent (scan its path or git URL first).
+description: Security scan of Claude Code skills, agents, commands and plugins with NVIDIA SkillSpector (static checks only, no API key) for prompt injection, hidden instructions, data and key exfiltration and other malicious patterns. Use when the user says "scan my skills", asks "is this skill safe", and before installing any skill, plugin or agent (scan its path or git URL first).
 allowed-tools: Bash(bash *), Read
 ---
 
@@ -19,7 +19,7 @@ bash ~/.claude/skills/trevskills-skill-scan/scan.sh <path | git URL> # one, befo
 ```
 
 - **No argument:** every skill in `~/.claude/skills` (symlinks followed, nested synced skills included), every
-  agent in `~/.claude/agents` and every plugin listed in `~/.claude/plugins/installed_plugins.json`, and the same
+  agent in `~/.claude/agents`, every command in `~/.claude/commands` and every plugin listed in `~/.claude/plugins/installed_plugins.json`, and the same
   under `~/.claude-owa`. Each real folder or file is scanned once, four at a time. About 100 targets take several
   minutes: run it in the background and read the tail.
 - **Path or git URL:** scans only that skill, plugin or agent. For a marketplace plugin, scan its source folder under

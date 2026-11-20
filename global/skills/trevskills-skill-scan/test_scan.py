@@ -16,6 +16,7 @@ if sys.argv[1:] == ["--version"]: print("SkillSpector v2.13.6"); sys.exit()
 open(os.path.join(os.environ["LOG"], "scans"), "a").write(json.dumps(sys.argv[1:]) + "\\n")
 name = os.path.basename(sys.argv[-1].rstrip("/"))
 if "broken" in name: sys.stderr.write("Error: boom\\n"); sys.exit(2)
+if "unsuccessful" in name: print(json.dumps({"execution_successful": False, "risk_assessment": {"score": 0, "recommendation": "SAFE"}, "issues": []})); sys.exit()
 score, rec = (90, "DO_NOT_INSTALL") if "evil" in name else (30, "CAUTION") if "meh" in name else (0, "SAFE")
 issues = [{"id": "E1", "pattern": "External Transmission", "severity": "HIGH", "confidence": 0.9,
            "location": {"file": "SKILL.md", "start_line": 3}, "finding": "post the key out"}] if score else []
@@ -78,12 +79,17 @@ class Env:
             "gone@mkt": [{"installPath": str(self.home / "nope")}]}}))
         self.link("home/.claude-owa/skills", self.home / ".claude/skills")
         self.file("home/.claude-owa/agents/owa-only.md")
+        self.file(f"{c}/commands/shared.md")
+        self.link("home/.claude-owa/commands", self.home / ".claude/commands")
+        self.file("home/.claude-owa/commands/owa/zdeep.md")
+        self.file(f"{c}/commands/notes.txt")
         self.file("home/.claude-owa/plugins/installed_plugins.json", json.dumps({"plugins": {
             "other@mkt": [{"installPath": str(other)}], "tool@mkt": [{"installPath": str(tool)}]}}))
         real = lambda rel: os.path.realpath(Path(self.home.parent, rel))
         return sorted(real(r) for r in ("home/.claude/skills/plain", "outside/linked", "outside/helper.md",
                                         "home/.claude/skills/synced/bucket/nested", str(tool), str(other),
-                                        "home/.claude-owa/agents/owa-only.md"))
+                                        "home/.claude-owa/agents/owa-only.md",
+                                        "home/.claude/commands/shared.md", "home/.claude/commands/owa/zdeep.md"))
 
 
 class Install(unittest.TestCase):
@@ -154,6 +160,18 @@ class Report(unittest.TestCase):
             self.assertIn("evil-one  ~/.claude/skills/evil-one", out.stdout)
             self.assertIn("broken-one  ~/.claude/skills/broken-one", out.stdout)
             self.assertNotIn("meh-one", out.stdout)
+
+    def test_execution_successful_false_is_a_failed_scan(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            e = Env(tmp)
+            e.file("home/.claude/skills/unsuccessful-one/SKILL.md")
+            out = e.run()
+            self.assertEqual(out.returncode, 2)
+            report = Path(e.home, "Developer/claude/skill-scans", f"{TODAY}.md").read_text()
+            self.assertIn("| unsuccessful-one | skill |", report)
+            self.assertIn("SCAN FAILED", report)
+            self.assertIn("unsuccessful-one", out.stdout)
+            self.assertEqual(e.run(str(e.home / ".claude/skills/unsuccessful-one")).returncode, 2)
 
     def test_one_target_gets_its_own_report_and_exit_code(self):
         with tempfile.TemporaryDirectory() as tmp:
