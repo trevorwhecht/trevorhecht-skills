@@ -86,7 +86,7 @@ Before creating any new component:
 | Viewport-dependent behaviour | The app's one `useIsDesktop` hook (mobile.md) |
 | Color | Theme variable (styling.md "Styling") |
 | Decorative styling | none from the Slop ban list (styling.md) |
-| Touch target | ≥ 44px (UB-15) |
+| Touch target | controls ≥ 44px; stacked text links keep design spacing, ≥ 24px (UB-15) |
 | Full-height container | `min-h-dvh` / `h-dvh` (UB-9) |
 | Modal footer buttons | `pb-[max(1rem,env(safe-area-inset-bottom))]` (UB-11) |
 | Review | 390, 820 and 1440px, base vs branch, longest real value |
