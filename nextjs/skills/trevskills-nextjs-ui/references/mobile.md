@@ -50,7 +50,7 @@ each column (the longest name, a four-figure price). 390 and 1440 are the UB pas
 
 ### Touch Targets
 
-Every tappable control is at least 44px both ways (UB-15). Neither kit's default meets it (HeroUI
+Every tappable control is at least 44px both ways (UB-15); links stacked in a list (footer columns, nav menus, account dropdown) keep the design's spacing and need only a 24px tall hit area, so never `min-h-11` or a `gap` on top of it. Neither kit's default meets it (HeroUI
 `md` is 40px, shadcn default is 32px and `lg` 36px): add `min-h-11 min-w-11`, or use HeroUI `size="lg"`. Grow an
 icon button by padding, never by growing the icon.
 
