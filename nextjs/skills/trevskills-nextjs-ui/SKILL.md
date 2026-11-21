@@ -64,6 +64,7 @@ A HeroUI project has no sub-skill; read `references/heroui.md`, then the compone
 | `references/forms.md` | Errors, validation timing, keyboards, autofill, submit and confirm | `## Forms` (incl. units on money and percent inputs) |
 | `references/styling.md` | Theme variables, Tailwind 3 vs 4, shadcn classes, layout, scrollbars, backgrounds | `## No Scrollbars Until the Full Page Is Utilized`, `## Never Transparent Backgrounds`, `## Slop ban list`, `## Tailwind 4 + shadcn Compatibility`, `## Styling` |
 | `references/accessibility.md` | Contrast, focus, icons, motion, skeleton loaders | `## Accessibility`, `## Animation`, `## Skeleton Loaders` |
+| `references/apple-hig.md` | Apple HIG look rules for the web: hierarchy, type scale, spacing grid, grouping, concentric corners | `## Apple HIG Look Rules` |
 | `references/ux-laws.md` | UX laws as design checks: Fitts, Hick, Miller, Doherty, Postel, Jakob, frequency of use | `## UX Laws` |
 | `references/links.md` | Descriptive share URLs and Open Graph images | `## Shareable Links — Descriptive URLs`, `## Shareable Links — Open Graph Metadata` |
 

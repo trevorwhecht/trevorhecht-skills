@@ -38,6 +38,15 @@ Keep transitions fast and purposeful. Decorative-only animation is noise.
 - **Secondary action:** an icon or count reacts together with the main change (a cart badge bumps when an item is added).
 - **Staging:** one thing moves at a time, and it is where the eye should go.
 - **Tap feedback:** every tap shows a visible response; a wait still gets the button spinner (UB-47).
+- **Source:** motion rules below marked (WWDC) come from Apple's WWDC 2018 "Designing Fluid Interfaces", Jesse Rurka's reel (https://www.instagram.com/reel/DeW9hxyAMHi/) and the emilkowalski/melvynx Apple-motion skills (skills.sh summary pages only).
+- **Respond instantly (WWDC):** a control reacts on pointer down, not on release or after the network call (UB-47).
+- **Interruptible (WWDC):** an animation can be grabbed or reversed mid-move; drive it from state (a CSS transition or spring), never a fixed keyframe that must finish first.
+- **Redirectable (WWDC):** a new tap during a move retargets from the current position, never snapping back to the start.
+- **Velocity carries over (WWDC):** a swipe or drag released while moving continues at that speed; it does not stop dead or restart slow.
+- **Springs over curves (WWDC):** gesture-driven motion settles with a spring (damping, no long bounce); fixed-duration easing is for non-gesture changes.
+- **Rubber band (WWDC):** dragging past an edge resists in proportion to the distance, never a hard wall.
+- **Follow the finger (WWDC):** a dragged element tracks the pointer one to one while held, with no easing lag.
+- **Same motion in and out (WWDC):** an element leaves along the path it came in on, and a dismiss gesture matches the open one.
 
 ```tsx
 // ✓ — performant, respects reduced motion
