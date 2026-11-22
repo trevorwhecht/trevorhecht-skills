@@ -17,7 +17,8 @@ sz(){ du -sh "$1" 2>/dev/null | awk '{print $1}'; }
 
 # used_by <name>: where scrum projects or skills depend on an app (they launch apps headless, so
 # "Trevor never opens it" proves nothing). Prints "USED BY: a (file), b (SKILL.md)" or nothing.
-# Overrides for tests: PROJECTS_JSON (JSON array of repo paths), SKILL_DIRS (colon-separated).
+# Overrides for tests: PROJECTS_JSON (JSON array of repo paths), SKILL_DIRS (colon-separated),
+# APPS_DIR (folder audit_unusedapps scans; default /Applications).
 used_by(){
   local name="$1" hits=() repo f d
   [[ -n "$name" ]] || return 0
@@ -43,7 +44,11 @@ except Exception:
     done < <(find -L "$d" -name SKILL.md 2>/dev/null)
   done
   [[ ${#hits[@]} -gt 0 ]] || return 0
-  local out="" h; for h in "${hits[@]}"; do out+="${out:+, }$h"; done
+  # Dedupe (same repo listed twice, same skill in two skill dirs), keeping first-seen order.
+  local out="" h; for h in "${hits[@]}"; do
+    case ", $out, " in *", $h, "*) continue ;; esac
+    out+="${out:+, }$h"
+  done
   echo "USED BY: $out"
 }
 
@@ -220,7 +225,7 @@ PY
 audit_unusedapps() {
   hr "APPS NOT OPENED IN ${UNUSED_DAYS:-180}+ DAYS (reinstallable; you decide)"
   local app last days now u; now="$(date +%s)"
-  for app in /Applications/*.app; do
+  for app in "${APPS_DIR:-/Applications}"/*.app; do
     [[ "$(defaults read "$app/Contents/Info" CFBundleIdentifier 2>/dev/null)" == com.apple.* ]] && continue
     last="$(mdls -name kMDItemLastUsedDate -raw "$app" 2>/dev/null)"
     if [[ "$last" == "(null)" || -z "$last" ]]; then days="?"
@@ -228,8 +233,8 @@ audit_unusedapps() {
          [[ "$days" -lt "${UNUSED_DAYS:-180}" ]] && continue
     fi
     u="$(used_by "$(basename "$app" .app)")"
-    printf '  %6s  last used: %-6s  %s\n' "$(sz "$app")" "$days" "$app"
-    [[ -n "$u" ]] && printf '          IN USE — do not remove. %s\n' "$u"
+    # One line per app, so sort -rh can never separate an app from its IN USE text.
+    printf '  %6s  last used: %-6s  %s%s\n' "$(sz "$app")" "$days" "$app" "${u:+  IN USE — do not remove. $u}"
   done | sort -rh
   echo "  '?' = macOS has no open date (never opened, or only launched in the background, e.g. Karabiner). Check before removing."
   echo "  Each app's data in ~/Library/Application Support goes with it; see 'audit orphans' after."
