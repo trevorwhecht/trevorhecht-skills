@@ -58,11 +58,11 @@ className="transition-all duration-300"  // never "all"
 
 ## Skeleton Loaders
 
-Show placeholder bars that match the real layout whenever the UI waits on data — never a bare spinner for content. Spinners are ONLY for action-pending buttons. Every data view also has its empty and error state (UB-33).
+Show placeholder bars that match the real layout whenever the UI waits on data — never a bare spinner for content. Spinners are only for action-pending buttons. Every data view also has its empty and error state (UB-33).
 
-**Skeletons are ONLY for dynamic (server/async) data.** Static content — nav labels, headings, sidebars, column titles — renders IMMEDIATELY and is NEVER skeletoned.
+**Skeletons are only for dynamic (server/async) data.** Static content — nav labels, headings, sidebars, column titles — renders immediately and is never skeletoned.
 
-**Persistent chrome belongs in `layout.tsx`, not the skeleton.** A static shell element shared across a route's states (a dashboard sidebar, a section header) renders in the route's `layout.tsx`, so it paints instantly and stays mounted; `loading.tsx` covers ONLY the dynamic content area.
+**Persistent chrome belongs in `layout.tsx`, not the skeleton.** A static shell element shared across a route's states (a dashboard sidebar, a section header) renders in the route's `layout.tsx`, so it paints instantly and stays mounted; `loading.tsx` covers only the dynamic content area.
 
 **Decouple independent data sources.** Gate each region on its own loading flag; never hold the whole view behind `aLoading || bLoading`.
 

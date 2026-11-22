@@ -13,7 +13,7 @@ Two engines in this folder:
 - `trevskills-mac-cleanup.sh` — cache cleanup, Asset sweep, iCloud offload. Dry-run by default.
 - `deep-audit.sh` — read-only audit: malware/persistence, questionable system data, large files.
 
-## ALWAYS end every session with the report (required)
+## End every session with the report
 
 Trevor wants a **full report every single time this skill is used**. Workflow:
 
@@ -122,7 +122,7 @@ Only processes **over threshold** are reset (default CPU ≥ 20% or RSS ≥ 500 
 **Quitting — safe by default:**
 - `processes quit` (dry-run) → `--apply` quits ONLY background helpers that hold no user data (Creative Cloud UI/CCX/CCLibrary/Adobe Desktop Service) and relaunch automatically. Frees a few hundred MB.
 - It **never** auto-quits Illustrator, Photoshop, editors, terminals, or browsers — unsaved work / open tabs. Those are printed as manual `osascript ... to quit` suggestions the user runs if they choose.
-- **Malware flag:** on this machine everything is validly signed (Adobe, Google, Spotify, Epson, Karabiner, DisplayLink, ProtonVPN, Figma, and AccuRIP Emerald / `com.bluironictechnologies.RipEngine` — the screen-print film RIP). Any `>>> UNSIGNED/UNKNOWN` line is a real "investigate this" signal; for a true scan, point to Objective-See KnockKnock or Malwarebytes.
+- **Malware flag:** investigate any `>>> UNSIGNED/UNKNOWN` line after ruling out the legitimately unsigned tools named under Deep audit (Homebrew binaries, open-source databases); for a true scan, point to Objective-See KnockKnock or Malwarebytes.
 - Implementation note: the signature check captures `codesign` output to a variable and matches with `case` — piping into `grep -q` races under `set -o pipefail` (grep's early exit SIGPIPEs codesign → false "unsigned" flags).
 
 ## iCloud offload (free local space, keep the file)
@@ -131,7 +131,7 @@ Only processes **over threshold** are reset (default CPU ≥ 20% or RSS ≥ 500 
 - Local file elsewhere → `offload move "<path>"` (dry-run) → `--apply` moves it into `iCloud Drive/Offloaded/`.
 - Stale-folder archiving → `archive "<src>" "<archive>" 6 --apply` moves files not touched in 6 months into a sibling archive folder.
 
-**CRITICAL LIMITATION — offload is a two-step, Finder-finished operation on modern macOS:**
+**Limitation: on modern macOS, offload is a two-step operation that Finder finishes:**
 Files with a "Keep Downloaded" pin carry the protected xattr `com.apple.fileprovider.pinned#PX`. Under the FileProvider system (Sonoma+), that pin can ONLY be cleared in Finder — `brctl evict` is a legacy no-op, `fileproviderctl` has no evict verb, and `xattr -d` can't remove a `#PX` attribute. So the CLI reliably **moves** files but cannot **offload** pinned ones. After `archive --apply` (or `offload`), tell the user to finish in Finder:
 
 > **Right-click the archive/target folder → "Remove Download."**
@@ -155,7 +155,7 @@ Trimming old messages is done by the user in **Messages → Settings → General
 1. Toggle Contacts OFF (Keep on My Mac) → wait 15s → ON, in System Settings → iCloud → See All.
 2. Daemon kick: `killall contactsd cloudd` (restarts sync — safe).
 
-**⚠️ DO NOT casually escalate past here.** Both of the following BURNED the user for ~1 hour and did NOT fix a genuinely-wedged sync:
+**Stop here unless the user agrees to go further.** Each step below cost about an hour without fixing a genuinely wedged sync:
 - **Removing `~/Library/Application Support/AddressBook`** to "force re-download" — the re-download STALLS partway (e.g. 203 of 1800) when CloudKit is wedged, leaving contacts missing. If you ever do this, **back up first** (`cp -R` the dir) and **export a vCard** (below).
 - **Full iCloud sign-out/in** — also stalls partway AND, if Desktop & Documents Folders sync is on, **empties the local Desktop** (files stay safe in iCloud; a new empty Desktop is created — reassure, don't panic; sign back in to restore). Not worth it.
 

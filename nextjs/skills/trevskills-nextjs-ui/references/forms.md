@@ -20,7 +20,7 @@ Input font size and the keyboard are in `mobile.md`.
 every percentage input shows a `%`. A bare `200` next to "Base delivery fee" is not enough. The
 symbol is a muted adornment (`$` at the left edge, `%` at the right edge), never part of the value,
 so parsing and saving don't change. Build it once as a `prefix` / `suffix` prop on the shared `Input`
-(or `startContent` / `endContent` in NextUI) and pass it at each call site. Never wrap each field by
+(or `startContent` / `endContent` in HeroUI) and pass it at each call site. Never wrap each field by
 hand. Money uses `inputMode="decimal"`. Miles, qty, zip and sort order get no symbol.
 ```tsx
 <Input prefix="$" type="number" inputMode="decimal" step="0.01" />  // money

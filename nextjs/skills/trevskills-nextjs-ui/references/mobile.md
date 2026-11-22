@@ -4,7 +4,7 @@ Phones and iPads. UB section C (UB-8 to UB-17) is the authority; this file adds 
 
 ## Mobile UI
 
-**Every component must look and function equally well on mobile and desktop. Mobile is not optional — design for the smallest screen first.**
+Every component works as well on mobile as on desktop; design for the smallest screen first.
 
 ### Mobile layout findings
 
