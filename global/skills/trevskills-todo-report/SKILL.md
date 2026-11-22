@@ -45,4 +45,4 @@ If nothing was found, say "No TODOs found in this project."
 
 ## Related
 
-Ideas with no code yet belong in the project's `BACKLOG.md` — see the `backlog` skill — not in a `TODO[n]` comment.
+Ideas with no code yet belong in the project's `BACKLOG.md` — see the `trevskills-backlog` skill — not in a `TODO[n]` comment.

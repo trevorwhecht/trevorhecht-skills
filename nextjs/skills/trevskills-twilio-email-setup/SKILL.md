@@ -180,7 +180,7 @@ model NotificationSettings {
 }
 ```
 
-After modifying schema: `npx prisma migrate dev --name <name>` (local), then `npx dotenv-cli -e .env.prod -- prisma migrate deploy` (prod).
+After modifying the schema, run `/trevskills-migrate` (global plugin): it migrates dev first, then production, behind its safety checks.
 
 ---
 

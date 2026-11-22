@@ -56,7 +56,7 @@ Restart Claude Code afterward.
 
 | | |
 |---|---|
-| **backlog** | Capture one-line ideas into the project's `BACKLOG.md` and read them back. Works in any repo, any language. |
+| **trevskills-backlog** | Capture one-line ideas into the project's `BACKLOG.md` and read them back. Works in any repo, any language. |
 | **trevskills-mine** | Mines interactive Claude Code chats that are new since the last run for unfinished work, facts that never reached a doc, and dropped findings. Jev ranks the sessions, one Opus reader reads the top ~20, and the results are queued as backlog items and knowledge saves. `mine.py archive` lists mined sessions older than 30 days; with `--apply` it uploads them xz-compressed to Google Drive and deletes each local copy once its size and md5 match. Ships `mine.py` (stdlib Python); needs a Jev ranking script at `~/.claude/scripts/jev-rank.py`, and rclone with a `gdrive:` remote for `archive --apply`. |
 | **trevskills-owa-message-check** | `/trevskills-owa-message-check` answers "who still needs a reply" for One With Arts work in one pass over texts (iMessage/SMS from `chat.db`), the business Gmail and Instagram DMs. It merges each person across channels into one row, skips vendors, friends, 2FA and newsletters, checks the call log for calls that may have sorted it, and prints tables (order asks, other replies, stale threads, maybe sorted by a call) with a draft reply per row in the owner's voice. Read-only: it never sends. Yes/no calls go to Jev, drafts to `trevskills-email`. macOS only. |
 | **trevskills-prospect** | `/trevskills-prospect <project>` finds nearby businesses likely to buy from a project's business. It reads `prospect/profile.json` in the project, scrapes Google Maps locally and free, checks the scraped fields aren't broken (a haiku spot-check drops any that are), scores and ranks each place by expected value, optionally drafts outreach emails (email only, never sent by the skill), and posts the leads to the project's `/api/leads/ingest`. `--dry-run` prints the ranked leads instead. A `post` mode turns one pasted Facebook or Instagram post into a lead. Ships `prospect.py` (stdlib Python) and an example profile; needs Docker (it runs the `gosom/google-maps-scraper` image). |
@@ -88,16 +88,16 @@ Restart Claude Code afterward.
 
 ## Rules (manual step)
 
-`global/rules/` holds two files that shape how Claude writes code:
+Two rule files shape how Claude writes code:
 
-- **`performance.md`** — speed, cost, and data-efficiency requirements, plus the `TODO[priority]` format that `trevskills-todo-report` scans for.
-- **`scalable-template.md`** — component boundaries, framework isolation, CSS-variable theming, `src/` structure.
+- **`global/rules/performance.md`** — speed, cost, and data-efficiency requirements, plus the `TODO[priority]` format that `trevskills-todo-report` scans for.
+- **`nextjs/rules/scalable-template.md`** — component boundaries, framework isolation, CSS-variable theming, `src/` structure.
 
 Plugins can't auto-install rules, so copy them yourself and reference them from your own `CLAUDE.md`:
 
 ```bash
 mkdir -p ~/.claude/rules
-cp global/rules/*.md ~/.claude/rules/
+cp global/rules/*.md nextjs/rules/scalable-template.md ~/.claude/rules/
 ```
 
 Then add to `~/.claude/CLAUDE.md`:
