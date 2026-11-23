@@ -709,7 +709,7 @@ Evaluate each press for a job; reject on hard constraints, then rank by estimate
 - All rates are user-entered per press and dryer; the app never uses a published PPH in an estimate.
 
 Shop ink practice (Trevor, 2026-10-26):
-- Waterbased groups: **HSA** (clear base, e.g. Matsui OW Stretch); **HSA+** (white base, 70%+ white components;
+- Waterbased groups: **HSA** (Matsui's water-based high-solid line); **HSA+** (white base, 70%+ white components;
   acts as its own underbase, so print-flash-print straight onto black shirts with no separate underbase screen);
   **LSA** (e.g. Matsui 301 RC Neo); **discharge**.
 - Plastisol groups: **Normal** and **Softhand** (additive; feels more like LSA; light garments).
@@ -722,7 +722,7 @@ Shop ink practice (Trevor, 2026-10-26):
 - Trevor keeps jars of every mixed ink. An empty jar of a stock formula saves a new jar (~$1.50) and label.
 
 Ink mixing structure (Trevor, 2026-10-27):
-- Waterbased (Matsui, Magna): a **brand** has **lines** (e.g. Matsui 301 RC Neo = LSA, OW Stretch = HSA,
+- Waterbased (Matsui, Magna): a **brand** has **lines** (e.g. Matsui 301 RC Neo = LSA, OW Stretch, HSA,
   Brite/Alpha/HM Discharge). Each line has its **own bases** (301 RC: Clear 301C + Matte 301M white;
   OW Stretch: Stretch Clear + Stretch White). **Pigments belong to the brand** and work with every line
   (violet, blue MG, blue MD...). A formula = one line's base(s) + brand pigments, in %.
@@ -760,7 +760,7 @@ Press setup and separations (Trevor, 2026-10-25):
 - **Ganging**: at most **2 designs** (3 in a pinch); more means taping off unused designs. Art stays inside
   the **inner 17 in**; registration marks may go past it.
 - **Light shirts never get an underbase.**
-- **Ink facts** (Trevor, 2026-11-03; these replace the earlier "HSA = OW Stretch" lines above):
+- **Ink facts** (Trevor, 2026-11-03):
   - HSA is Matsui's water-based high-solid line, not OW Stretch. LSA is Matsui 301 RC. LSA and HSA are
     water-based only.
   - Black in a design always prints as **LSA black** and goes first (it soaks in and stays soft and

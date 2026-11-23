@@ -123,5 +123,7 @@ Built into Tailwind 4. Tailwind 3 needs the `@tailwindcss/container-queries` plu
 **Images** — always `<Image>` from `next/image`, never raw `<img>`, with its size or aspect ratio
 reserved so nothing shifts when it loads (UB-37):
 ```tsx
-<Image src={src} alt={alt} className="aspect-video w-full object-cover" />
+<div className="relative aspect-video w-full">
+  <Image src={src} alt={alt} fill sizes="100vw" className="object-cover" />
+</div>
 ```

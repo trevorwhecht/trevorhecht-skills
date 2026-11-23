@@ -1,0 +1,175 @@
+diff --git a/README.md b/README.md
+--- a/README.md
++++ b/README.md
+@@ -57,5 +57,5 @@ F2
+ | | |
+ |---|---|
+-| **backlog** | Capture one-line ideas into the project's `BACKLOG.md` and read them back. Works in any repo, any language. |
++| **trevskills-backlog** | Capture one-line ideas into the project's `BACKLOG.md` and read them back. Works in any repo, any language. |
+ | **trevskills-mine** | Mines interactive Claude Code chats that are new since the last run for unfinished work, facts that never reached a doc, and dropped findings. Jev ranks the sessions, one Opus reader reads the top ~20, and the results are queued as backlog items and knowledge saves. `mine.py archive` lists mined sessions older than 30 days; with `--apply` it uploads them xz-compressed to Google Drive and deletes each local copy once its size and md5 match. Ships `mine.py` (stdlib Python); needs a Jev ranking script at `~/.claude/scripts/jev-rank.py`, and rclone with a `gdrive:` remote for `archive --apply`. |
+ | **trevskills-owa-message-check** | `/trevskills-owa-message-check` answers "who still needs a reply" for One With Arts work in one pass over texts (iMessage/SMS from `chat.db`), the business Gmail and Instagram DMs. It merges each person across channels into one row, skips vendors, friends, 2FA and newsletters, checks the call log for calls that may have sorted it, and prints tables (order asks, other replies, stale threads, maybe sorted by a call) with a draft reply per row in the owner's voice. Read-only: it never sends. Yes/no calls go to Jev, drafts to `trevskills-email`. macOS only. |
+@@ -88,14 +88,14 @@ F1
+ ## Rules (manual step)
+ 
+-`global/rules/` holds two files that shape how Claude writes code:
+-
+-- **`performance.md`** — speed, cost, and data-efficiency requirements, plus the `TODO[priority]` format that `trevskills-todo-report` scans for.
+-- **`scalable-template.md`** — component boundaries, framework isolation, CSS-variable theming, `src/` structure.
+-
+-Plugins can't auto-install rules, so copy them yourself and reference them from your own `CLAUDE.md`:
+-
+-```bash
+-mkdir -p ~/.claude/rules
+-cp global/rules/*.md ~/.claude/rules/
++Two rule files shape how Claude writes code:
++
++- **`global/rules/performance.md`** — speed, cost, and data-efficiency requirements, plus the `TODO[priority]` format that `trevskills-todo-report` scans for.
++- **`nextjs/rules/scalable-template.md`** — component boundaries, framework isolation, CSS-variable theming, `src/` structure.
++
++Plugins can't auto-install rules, so copy them yourself and reference them from your own `CLAUDE.md`:
++
++```bash
++mkdir -p ~/.claude/rules
++cp global/rules/*.md nextjs/rules/scalable-template.md ~/.claude/rules/
+ ```
+ 
+diff --git a/global/skills/trevskills-todo-report/SKILL.md b/global/skills/trevskills-todo-report/SKILL.md
+--- a/global/skills/trevskills-todo-report/SKILL.md
++++ b/global/skills/trevskills-todo-report/SKILL.md
+@@ -46,3 +46,3 @@ F3
+ ## Related
+ 
+-Ideas with no code yet belong in the project's `BACKLOG.md` — see the `backlog` skill — not in a `TODO[n]` comment.
++Ideas with no code yet belong in the project's `BACKLOG.md` — see the `trevskills-backlog` skill — not in a `TODO[n]` comment.
+diff --git a/macos/skills/trevskills-timecard/SKILL.md b/macos/skills/trevskills-timecard/SKILL.md
+--- a/macos/skills/trevskills-timecard/SKILL.md
++++ b/macos/skills/trevskills-timecard/SKILL.md
+@@ -21,5 +21,5 @@ F4
+ ## Always log
+ 
+-ALWAYS create the calendar event(s) for any new timestamps in the input — even when the user's message is a question (totals, pay, etc.). Answer the question AND log the shifts in the same turn. Pay rate for totals: set `PAY_RATE` below (default **$0.00/hr** — edit this line).
++ALWAYS create the calendar event(s) for any new timestamps in the input — even when the user's message is a question (totals, pay, etc.). Answer the question AND log the shifts in the same turn. Pay rate for totals: **$0.00/hr** (edit this line to set yours).
+ 
+ ## Creating the event
+diff --git a/global/skills/trevskills-screenprint/reference.md b/global/skills/trevskills-screenprint/reference.md
+--- a/global/skills/trevskills-screenprint/reference.md
++++ b/global/skills/trevskills-screenprint/reference.md
+@@ -712,3 +712,3 @@ F5
+-- Waterbased groups: **HSA** (clear base, e.g. Matsui OW Stretch); **HSA+** (white base, 70%+ white components;
++- Waterbased groups: **HSA** (Matsui's water-based high-solid line); **HSA+** (white base, 70%+ white components;
+   acts as its own underbase, so print-flash-print straight onto black shirts with no separate underbase screen);
+   **LSA** (e.g. Matsui 301 RC Neo); **discharge**.
+@@ -725,3 +725,3 @@ F6
+-- Waterbased (Matsui, Magna): a **brand** has **lines** (e.g. Matsui 301 RC Neo = LSA, OW Stretch = HSA,
++- Waterbased (Matsui, Magna): a **brand** has **lines** (e.g. Matsui 301 RC Neo = LSA, OW Stretch, HSA,
+   Brite/Alpha/HM Discharge). Each line has its **own bases** (301 RC: Clear 301C + Matte 301M white;
+   OW Stretch: Stretch Clear + Stretch White). **Pigments belong to the brand** and work with every line
+diff --git a/nextjs/skills/trevskills-nextjs-ui/references/forms.md b/nextjs/skills/trevskills-nextjs-ui/references/forms.md
+--- a/nextjs/skills/trevskills-nextjs-ui/references/forms.md
++++ b/nextjs/skills/trevskills-nextjs-ui/references/forms.md
+@@ -21,5 +21,5 @@ F7
+ symbol is a muted adornment (`$` at the left edge, `%` at the right edge), never part of the value,
+ so parsing and saving don't change. Build it once as a `prefix` / `suffix` prop on the shared `Input`
+-(or `startContent` / `endContent` in NextUI) and pass it at each call site. Never wrap each field by
++(or `startContent` / `endContent` in HeroUI) and pass it at each call site. Never wrap each field by
+ hand. Money uses `inputMode="decimal"`. Miles, qty, zip and sort order get no symbol.
+ ```tsx
+diff --git a/nextjs/skills/trevskills-twilio-email-setup/SKILL.md b/nextjs/skills/trevskills-twilio-email-setup/SKILL.md
+--- a/nextjs/skills/trevskills-twilio-email-setup/SKILL.md
++++ b/nextjs/skills/trevskills-twilio-email-setup/SKILL.md
+@@ -181,5 +181,5 @@ F8
+ ```
+ 
+-After modifying schema: `npx prisma migrate dev --name <name>` (local), then `npx dotenv-cli -e .env.prod -- prisma migrate deploy` (prod).
++After modifying the schema, run `/trevskills-migrate` (global plugin): it migrates dev first, then production, behind its safety checks.
+ 
+ ---
+diff --git a/global/rules/performance.md b/global/rules/performance.md
+--- a/global/rules/performance.md
++++ b/global/rules/performance.md
+@@ -8,5 +8,5 @@ F9
+ 
+ **Speed & load time:**
+-- Always look for the optimal solution first. Take extra time to find it rather than brute-forcing something that works but performs poorly.
++- Look for the optimal solution first, rather than brute-forcing something that works but performs poorly.
+ - If a brute-force approach is the only immediate option, implement it but always leave a structured TODO comment so it gets cleaned up later.
+ 
+diff --git a/macos/skills/trevskills-mac-cleanup/SKILL.md b/macos/skills/trevskills-mac-cleanup/SKILL.md
+--- a/macos/skills/trevskills-mac-cleanup/SKILL.md
++++ b/macos/skills/trevskills-mac-cleanup/SKILL.md
+@@ -14,4 +14,4 @@ F10
+ - `deep-audit.sh` — read-only audit: malware/persistence, questionable system data, large files.
+ 
+-## ALWAYS end every session with the report (required)
++## End every session with the report
+ 
+@@ -123,5 +123,5 @@ F11
+ - `processes quit` (dry-run) → `--apply` quits ONLY background helpers that hold no user data (Creative Cloud UI/CCX/CCLibrary/Adobe Desktop Service) and relaunch automatically. Frees a few hundred MB.
+ - It **never** auto-quits Illustrator, Photoshop, editors, terminals, or browsers — unsaved work / open tabs. Those are printed as manual `osascript ... to quit` suggestions the user runs if they choose.
+-- **Malware flag:** on this machine everything is validly signed (Adobe, Google, Spotify, Epson, Karabiner, DisplayLink, ProtonVPN, Figma, and AccuRIP Emerald / `com.bluironictechnologies.RipEngine` — the screen-print film RIP). Any `>>> UNSIGNED/UNKNOWN` line is a real "investigate this" signal; for a true scan, point to Objective-See KnockKnock or Malwarebytes.
++- **Malware flag:** investigate any `>>> UNSIGNED/UNKNOWN` line after ruling out the legitimately unsigned tools named under Deep audit (Homebrew binaries, open-source databases); for a true scan, point to Objective-See KnockKnock or Malwarebytes.
+ - Implementation note: the signature check captures `codesign` output to a variable and matches with `case` — piping into `grep -q` races under `set -o pipefail` (grep's early exit SIGPIPEs codesign → false "unsigned" flags).
+ 
+@@ -132,5 +132,5 @@ F12
+ - Stale-folder archiving → `archive "<src>" "<archive>" 6 --apply` moves files not touched in 6 months into a sibling archive folder.
+ 
+-**CRITICAL LIMITATION — offload is a two-step, Finder-finished operation on modern macOS:**
++**Limitation: on modern macOS, offload is a two-step operation that Finder finishes:**
+ Files with a "Keep Downloaded" pin carry the protected xattr `com.apple.fileprovider.pinned#PX`. Under the FileProvider system (Sonoma+), that pin can ONLY be cleared in Finder — `brctl evict` is a legacy no-op, `fileproviderctl` has no evict verb, and `xattr -d` can't remove a `#PX` attribute. So the CLI reliably **moves** files but cannot **offload** pinned ones. After `archive --apply` (or `offload`), tell the user to finish in Finder:
+ 
+@@ -156,5 +156,5 @@ F13
+ 2. Daemon kick: `killall contactsd cloudd` (restarts sync — safe).
+ 
+-**⚠️ DO NOT casually escalate past here.** Both of the following BURNED the user for ~1 hour and did NOT fix a genuinely-wedged sync:
++**Stop here unless the user agrees to go further.** Each step below cost about an hour without fixing a genuinely wedged sync:
+ - **Removing `~/Library/Application Support/AddressBook`** to "force re-download" — the re-download STALLS partway (e.g. 203 of 1800) when CloudKit is wedged, leaving contacts missing. If you ever do this, **back up first** (`cp -R` the dir) and **export a vCard** (below).
+ - **Full iCloud sign-out/in** — also stalls partway AND, if Desktop & Documents Folders sync is on, **empties the local Desktop** (files stay safe in iCloud; a new empty Desktop is created — reassure, don't panic; sign back in to restore). Not worth it.
+diff --git a/nextjs/skills/trevskills-nextjs-ui/references/accessibility.md b/nextjs/skills/trevskills-nextjs-ui/references/accessibility.md
+--- a/nextjs/skills/trevskills-nextjs-ui/references/accessibility.md
++++ b/nextjs/skills/trevskills-nextjs-ui/references/accessibility.md
+@@ -59,9 +59,9 @@ F14
+ ## Skeleton Loaders
+ 
+-Show placeholder bars that match the real layout whenever the UI waits on data — never a bare spinner for content. Spinners are ONLY for action-pending buttons. Every data view also has its empty and error state (UB-33).
+-
+-**Skeletons are ONLY for dynamic (server/async) data.** Static content — nav labels, headings, sidebars, column titles — renders IMMEDIATELY and is NEVER skeletoned.
+-
+-**Persistent chrome belongs in `layout.tsx`, not the skeleton.** A static shell element shared across a route's states (a dashboard sidebar, a section header) renders in the route's `layout.tsx`, so it paints instantly and stays mounted; `loading.tsx` covers ONLY the dynamic content area.
++Show placeholder bars that match the real layout whenever the UI waits on data — never a bare spinner for content. Spinners are only for action-pending buttons. Every data view also has its empty and error state (UB-33).
++
++**Skeletons are only for dynamic (server/async) data.** Static content — nav labels, headings, sidebars, column titles — renders immediately and is never skeletoned.
++
++**Persistent chrome belongs in `layout.tsx`, not the skeleton.** A static shell element shared across a route's states (a dashboard sidebar, a section header) renders in the route's `layout.tsx`, so it paints instantly and stays mounted; `loading.tsx` covers only the dynamic content area.
+ 
+ **Decouple independent data sources.** Gate each region on its own loading flag; never hold the whole view behind `aLoading || bLoading`.
+diff --git a/nextjs/skills/trevskills-nextjs-ui/references/mobile.md b/nextjs/skills/trevskills-nextjs-ui/references/mobile.md
+--- a/nextjs/skills/trevskills-nextjs-ui/references/mobile.md
++++ b/nextjs/skills/trevskills-nextjs-ui/references/mobile.md
+@@ -5,5 +5,5 @@ F15
+ ## Mobile UI
+ 
+-**Every component must look and function equally well on mobile and desktop. Mobile is not optional — design for the smallest screen first.**
++Every component works as well on mobile as on desktop; design for the smallest screen first.
+ 
+ ### Mobile layout findings
+diff --git a/nextjs/skills/trevskills-nextjs-ui/references/styling.md b/nextjs/skills/trevskills-nextjs-ui/references/styling.md
+--- a/nextjs/skills/trevskills-nextjs-ui/references/styling.md
++++ b/nextjs/skills/trevskills-nextjs-ui/references/styling.md
+@@ -124,4 +124,6 @@ F16
+ reserved so nothing shifts when it loads (UB-37):
+ ```tsx
+-<Image src={src} alt={alt} className="aspect-video w-full object-cover" />
++<div className="relative aspect-video w-full">
++  <Image src={src} alt={alt} fill sizes="100vw" className="object-cover" />
++</div>
+ ```
+diff --git a/global/skills/trevskills-reddit-thread/SKILL.md b/global/skills/trevskills-reddit-thread/SKILL.md
+--- a/global/skills/trevskills-reddit-thread/SKILL.md
++++ b/global/skills/trevskills-reddit-thread/SKILL.md
+@@ -11,5 +11,5 @@ F17
+ ## Why this exists
+ 
+-On 2026-11-17 Reddit refused curl, old.reddit, the `.json` endpoint, WebFetch and the Chrome extension, and the thread had to be pasted by hand. The last30days skill does not cover this: it has no single-thread command (only topic search), its thread fetch uses the same unauthenticated `.json` endpoint that was refused, and its other path scrapes HTML.
++Reddit refuses unauthenticated reads (curl, old.reddit, the `.json` endpoint, WebFetch and the Chrome extension), so this skill uses the official OAuth API. The last30days skill does not cover this: it has no single-thread command (only topic search), its thread fetch uses that refused `.json` endpoint, and its other path scrapes HTML.
+ 
+ ## Setup (once)

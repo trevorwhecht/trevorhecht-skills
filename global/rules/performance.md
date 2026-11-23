@@ -7,7 +7,7 @@ description: Performance, cost, and TODO tracking rules — applies to all proje
 Every project should be as lightweight, fast, and cheap to run as possible. These are design requirements, not afterthoughts.
 
 **Speed & load time:**
-- Always look for the optimal solution first. Take extra time to find it rather than brute-forcing something that works but performs poorly.
+- Look for the optimal solution first, rather than brute-forcing something that works but performs poorly.
 - If a brute-force approach is the only immediate option, implement it but always leave a structured TODO comment so it gets cleaned up later.
 
 **TODO format:**

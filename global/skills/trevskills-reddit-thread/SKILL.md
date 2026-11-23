@@ -10,7 +10,7 @@ Prints one Reddit thread (post plus indented comments) from its URL.
 
 ## Why this exists
 
-On 2026-11-17 Reddit refused curl, old.reddit, the `.json` endpoint, WebFetch and the Chrome extension, and the thread had to be pasted by hand. The last30days skill does not cover this: it has no single-thread command (only topic search), its thread fetch uses the same unauthenticated `.json` endpoint that was refused, and its other path scrapes HTML.
+Reddit refuses unauthenticated reads (curl, old.reddit, the `.json` endpoint, WebFetch and the Chrome extension), so this skill uses the official OAuth API. The last30days skill does not cover this: it has no single-thread command (only topic search), its thread fetch uses that refused `.json` endpoint, and its other path scrapes HTML.
 
 ## Setup (once)
 

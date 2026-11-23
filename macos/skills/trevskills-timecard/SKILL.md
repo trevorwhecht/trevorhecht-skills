@@ -20,7 +20,7 @@ There is not always a lunch — never assume one. Only if the user mentions a lu
 
 ## Always log
 
-ALWAYS create the calendar event(s) for any new timestamps in the input — even when the user's message is a question (totals, pay, etc.). Answer the question AND log the shifts in the same turn. Pay rate for totals: set `PAY_RATE` below (default **$0.00/hr** — edit this line).
+ALWAYS create the calendar event(s) for any new timestamps in the input — even when the user's message is a question (totals, pay, etc.). Answer the question AND log the shifts in the same turn. Pay rate for totals: **$0.00/hr** (edit this line to set yours).
 
 ## Creating the event
 
