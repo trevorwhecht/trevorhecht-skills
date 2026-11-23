@@ -498,8 +498,44 @@ proc_reset() {
   fi
 }
 
+# Biggest memory holder, called by mem_summary when swap is 2 GB or more.
+# `top -o mem` counts compressed + swapped pages; ps RSS hides them (2026-11-22:
+# an orphaned next-server showed RSS 49 MB while holding a 23 GB footprint).
+# Walks the parent chain up to launchd: an orphan is a process whose topmost
+# ancestor is no app bundle and no system binary, so nothing on screen owns it.
+# Sets MEM_HOG to "<name> (pid N, <mem>, orphan|started under <app>)".
+MEM_HOG=""
+mem_hog() {
+  local pid mem name ppid comm cur top_comm="" depth=0 owner
+  read -r pid mem < <(top -l 1 -o mem -n 1 -stats pid,mem 2>/dev/null | \
+    awk 'f && NF {print $1, $NF; exit} $1=="PID" {f=1}')
+  [[ "${pid:-}" =~ ^[0-9]+$ ]] || return 0
+  mem="${mem%[+-]}"
+  read -r ppid name < <(ps -o ppid=,comm= -p "$pid" 2>/dev/null)
+  [[ -n "${name:-}" ]] || return 0
+  name="${name##*/}"; cur="$pid"
+  while [[ "$depth" -lt 30 ]]; do
+    read -r ppid comm < <(ps -o ppid=,comm= -p "$cur" 2>/dev/null)
+    [[ -n "${comm:-}" ]] || break
+    top_comm="$comm"
+    [[ "${ppid:-1}" =~ ^[0-9]+$ ]] && [[ "$ppid" -gt 1 ]] || break
+    cur="$ppid"; depth=$((depth + 1))
+  done
+  printf '  Biggest memory holder: %s (pid %s) at %s (top MEM; ps RSS hides compressed memory).\n' "$name" "$pid" "$mem"
+  if [[ "$top_comm" == *.app/* ]] || [[ "$top_comm" =~ ^/(System|usr|sbin|Library/Apple)/ ]]; then
+    owner="${top_comm##*/}"
+    printf '  Started under %s: quit it there, or kill %s.\n' "$owner" "$pid"
+    MEM_HOG="$name (pid $pid, $mem, started under $owner)"
+  else
+    echo "  It is an ORPHAN: its parent chain ends at launchd with no app or terminal above it,"
+    echo "  so nothing will ever stop it."
+    MEM_HOG="$name (pid $pid, $mem, orphan)"
+  fi
+  printf '  >>> STOP IT FIRST: kill %s, then check swap again before restarting.\n' "$pid"
+}
+
 # Shared memory/uptime summary — used by `processes` and the run `report`.
-# Sets globals MEM_UP_DAYS / MEM_SWAP_MB / MEM_RESTART so callers can reuse the numbers.
+# Sets globals MEM_UP_DAYS / MEM_SWAP_MB / MEM_RESTART / MEM_HOG so callers can reuse the numbers.
 MEM_UP_DAYS=0; MEM_SWAP_MB=0
 mem_summary() {
   local comp_mb wired_mb swap_int
@@ -510,7 +546,8 @@ mem_summary() {
   wired_mb=$(vm_stat | awk '/Pages wired down/{gsub(/[^0-9]/,"",$NF); printf "%d", $NF*16384/1048576}')
   printf '  Uptime: %s day(s)   Swap used: %s MB   Compressed RAM: %s MB   Wired: %s MB\n' \
     "$MEM_UP_DAYS" "${MEM_SWAP_MB:-?}" "${comp_mb:-?}" "${wired_mb:-?}"
-  swap_int=$(printf '%.0f' "${MEM_SWAP_MB:-0}"); MEM_RESTART=0
+  swap_int=$(printf '%.0f' "${MEM_SWAP_MB:-0}"); MEM_RESTART=0; MEM_HOG=""
+  [[ "$swap_int" -ge 2048 ]] && mem_hog
   if [[ "$MEM_UP_DAYS" -ge 7 ]] || { [[ "$swap_int" -ge 2048 ]] && [[ "$MEM_UP_DAYS" -ge 1 ]]; }; then
     MEM_RESTART=1
     echo "  >>> RESTART RECOMMENDED — high uptime and/or heavy swap. A reboot clears"
@@ -663,6 +700,7 @@ do_report() {
   echo "== Your maintenance plan =="
   printf '  • Run this cleanup: %s\n' "$rec_freq"
   printf '    %s\n' "$rec_note"
+  [[ -n "$MEM_HOG" ]] && printf '  • STOP FIRST: %s. It holds the swap; restart only if swap stays high after.\n' "$MEM_HOG"
   if [[ "$MEM_RESTART" -eq 1 ]]; then
     printf '  • RESTART NOW-ISH: %s days uptime, %s MB swap. Reboot weekly — it clears swap + the memory compressor, the biggest speed win.\n' "$MEM_UP_DAYS" "$MEM_SWAP_MB"
   else

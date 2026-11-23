@@ -93,6 +93,8 @@ Note Desktop/Documents are usually iCloud-synced, and some folders (e.g. `~/Desk
 2. **Questionable system data** — iOS backups, Xcode DerivedData/DeviceSupport/Archives, simulators, Docker, Containers/Group Containers, local snapshots split into Time Machine (thin with `sudo tmutil thinlocalsnapshots / 999999999999 4`) and `com.apple.os.update` ones (macOS manages them; thinning won't remove them), leftover installers. Sizes only; user chooses.
 3. **Large files > 500 MB** (`LARGE_MB=1000 ... audit largefiles` to raise the bar) — real local files (already-evicted iCloud files are skipped), flagged as offload candidates.
 
+Note: `code_sign_clone` folders of com.apple.* apps and Chrome under `/private/var/folders` show huge `du` sizes (373 GB on a 245 GB disk, 2026-11-22) but they are APFS clones sharing blocks with the apps, so they are not a space finding. Never report or remove them.
+
 Note: `com.apple.MobileSMS` container + `~/Library/Messages` are Messages storage — they shrink via the Messages app's own "Keep Messages" setting, not this tool.
 
 ## Connected accounts (OAuth) audit
@@ -114,6 +116,7 @@ Rules: list what you find first, then remove only what the user approves. Never 
 
 **Diagnose the cause before quitting anything — quitting apps is usually NOT the real fix:**
 - **Uptime + swap is the #1 lever.** Many days of uptime with GBs of swap used and a full memory compressor means RAM has been churning to disk for weeks. **A restart clears all swap and the compressor instantly** — a far bigger win than quitting any single app. The report prints a RESTART RECOMMENDED banner when uptime ≥ 7 days, or swap ≥ 2 GB after at least 1 day up. Heavy swap within a day of a restart comes from what is running now, so the report says a restart will not help: close heavy apps or let running jobs finish.
+- **Name the swap holder before advising a restart.** At 2 GB+ swap the report names the biggest memory holder from `top -o mem` (ps RSS hides compressed memory: on 2026-11-22 an orphaned next-server showed RSS 49 MB with a 23 GB footprint and held nearly all 20 GB of swap at 1 day uptime). It says whether the holder is an ORPHAN (its parent chain reaches launchd with no app or terminal above it) and puts STOP FIRST ahead of the restart advice: stop that process, then restart only if swap stays high.
 - **Dual heavy apps.** Illustrator + Photoshop open at once (plus Adobe's login-launched background services) is a legitimate multi-GB load. That's expected, not a leak.
 
 **Resetting stuck Apple helpers (`processes reset`) — run this every cleanup:**
