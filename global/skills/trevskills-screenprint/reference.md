@@ -760,7 +760,7 @@ Press setup and separations (Trevor, 2026-10-25):
 - **Ganging**: at most **2 designs** (3 in a pinch); more means taping off unused designs. Art stays inside
   the **inner 17 in**; registration marks may go past it.
 - **Light shirts never get an underbase.**
-- **Ink facts** (Trevor, 2026-11-03; these replace the earlier "HSA = OW Stretch" lines above):
+- **Ink facts** (Trevor, 2026-11-03):
   - HSA is Matsui's water-based high-solid line, not OW Stretch. LSA is Matsui 301 RC. LSA and HSA are
     water-based only.
   - Black in a design always prints as **LSA black** and goes first (it soaks in and stays soft and
