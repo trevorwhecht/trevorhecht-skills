@@ -29,7 +29,10 @@ Trevor wants a **full report every single time this skill is used**. Workflow:
    Run the `scan` first anyway and **print the file list in the report** — not as a gate, but so there's a record of what was removed.
    This applies **in shared iCloud folders too** — he was shown that removals there propagate to collaborators and chose it deliberately. Do not re-litigate it each run.
    Files always go to `~/.Trash` (recoverable ~30 days), never `rm` — that safety property is what makes the automatic sweep acceptable, so never "optimize" it into a delete.
-2d. **Deeper dig (when he asks "what else is using space")** — `audit storage` in one go: space map, system data, leftovers of uninstalled apps, apps unopened 180+ days, large files. List what you find, Trash only what he approves (`mv` into `~/.Trash`; `/Applications` apps owned by root need him to drag them in Finder). Found 2026-10-28: ~2.5 GB of uninstalled-app leftovers, Discord/Postman/Zoom unused, Claude desktop's 11 GB VM (he uses only the terminal and Chrome).
+2d. **Always run both sweep dry-runs and print their lists in the report:**
+   `./trevskills-mac-cleanup.sh worktrees` (scrum worktrees of done/aborted jobs) and `./trevskills-mac-cleanup.sh transcripts` (Claude transcripts untouched 30+ days).
+   Unlike `assets`, these keep the approval gate: show the user both lists, and run `worktrees --apply` / `transcripts --apply` only after the user says yes. Name any branch the apply kept as unmerged so the user can `git branch -D` it by hand.
+2e. **Deeper dig (when he asks "what else is using space")** — `audit storage` in one go: space map, system data, leftovers of uninstalled apps, apps unopened 180+ days, large files. List what you find, Trash only what he approves (`mv` into `~/.Trash`; `/Applications` apps owned by root need him to drag them in Finder). Found 2026-10-28: ~2.5 GB of uninstalled-app leftovers, Discord/Postman/Zoom unused, Claude desktop's 11 GB VM (he uses only the terminal and Chrome).
    **Never offer or remove an app, or its data, that the audit marks `USED BY` / `IN USE`.** Scrum jobs and skills launch apps headless (Docker for a project's DB, Blender, PhotoCraft), so Trevor not opening it proves nothing. Docker's `Docker.raw` holds container volumes, so trashing it deletes local dev databases (boisepartyco-pg). Before removing any other app, check its own logs or data folder for a launch in the last 30 days and find what started it. Never `rm` an app's root-owned helpers (`/Library/LaunchDaemons`, `/Library/PrivilegedHelperTools`, `/usr/local/bin` links): the Trash can't bring those back.
 3. **End with:** `./trevskills-mac-cleanup.sh report <baseline_kb>` — pass the baseline so it shows "Freed THIS session". If the session did no cleanup (just a checkup), run `report` with no argument.
 4. **Present the whole report to Trevor**, including: GB freed, the Trash size line (space isn't free until he empties it), memory/uptime summary, and the maintenance plan (restart cadence + how often to run this skill).
@@ -42,6 +45,8 @@ The report persists free-space + timestamp to `~/.mac-cleanup/last-run`, so each
 - **Asset sweep** moves to `~/.Trash` (recoverable ~30 days). Matches ONLY Illustrator default-export names (`Asset`, `Asset 3`, `Asset 15@300x`); excludes `*.photoslibrary`, `~/Library`, keys, `node_modules`, `.git`, `*FINAL*`.
 - **Audit changes nothing.** It reports and raises questions; the user decides.
 - **Offload** keeps the file in iCloud and only evicts the local copy (re-downloads on demand).
+- **Worktrees sweep** touches only `<repo>/.claude/worktrees/scrum-<id>` dirs, and the `scrum-<id>-base` worktree scrum creates beside each one, whose job is `done` or `aborted` on that repo's `scrum/board.json`, for repos in the scrum registry. Other stages, `scrum-*` dirs not on the board, non-`scrum-` dirs and anything outside `.claude/worktrees/` are never touched. Branches go via `git branch -d` only (never `-D`), so an unmerged branch is kept and named; the `-base` worktree has no branch to delete. A missing or malformed registry or board is skipped with a note, never read as "all stale".
+- **Transcripts sweep** archives, never deletes: each `*.jsonl` under `~/.claude/projects` untouched 30+ days is gzipped to `~/.claude/transcript-archive/<project>/<path>.gz`, verified byte for byte against the original, and only then is the original removed. Any error keeps the original. `memory/` folders are never touched.
 
 ## Quick reference
 
@@ -68,13 +73,15 @@ The report persists free-space + timestamp to `~/.mac-cleanup/last-run`, so each
 | `./trevskills-mac-cleanup.sh processes reset --self-check` | Verify the never-kill denylist still fires. Run after ANY edit to that list. |
 | `./trevskills-mac-cleanup.sh offload evict "<path>"` | Free local copy of an iCloud-Drive file (stays in cloud). |
 | `./trevskills-mac-cleanup.sh offload move "<path>" [--apply]` | Move a local file into iCloud Drive, then evict. |
+| `./trevskills-mac-cleanup.sh worktrees [--apply]` | List (or remove) scrum worktrees of `done`/`aborted` board jobs; deletes the `scrum/<id>` branch only if merged (`branch -d`). |
+| `./trevskills-mac-cleanup.sh transcripts [--apply]` | List (or gzip-archive to `~/.claude/transcript-archive`) Claude transcripts untouched 30+ days; verified before the original is removed. |
 | `./trevskills-mac-cleanup.sh archive "<src>" "<archive>" [months] [--apply]` | Move files in `<src>` not modified in `<months>` (default 6) into `<archive>` (a sibling folder), for offloading. |
 
 Cache categories: `app-caches` `dev-caches` `adobe-caches` `messages-cache` `logs` `system-caches` `build-caches`. Default `clean` = the safe set (not `system-caches`/`build-caches`).
 
 **NEVER store passwords.** The `snapshots` step uses `sudo` and must let macOS prompt for the password interactively every run. Do not hardcode a password anywhere in this skill — a plaintext admin password in a file is a full-system credential leak.
 
-**Always** dry-run and show the list before any `--apply` — with one deliberate exception: **`assets` no longer needs approval** (Trevor's call, 2026-08-24). Still print the scanned list in the report so there's a record, but apply without waiting. Everything else (cache purge, offload, archive, snapshots) keeps the dry-run-then-approve gate.
+**Always** dry-run and show the list before any `--apply` — with one deliberate exception: **`assets` no longer needs approval** (Trevor's call, 2026-08-24). Still print the scanned list in the report so there's a record, but apply without waiting. Everything else (cache purge, offload, archive, snapshots, worktrees, transcripts) keeps the dry-run-then-approve gate.
 
 Note Desktop/Documents are usually iCloud-synced, and some folders (e.g. `~/Desktop/Mockups`) are **shared with clients** — trashing there propagates to collaborators as well as his other devices. He was shown this and opted in anyway; files land in `~/.Trash` and are recoverable ~30 days. Say what was removed in the report; don't stop to ask.
 
@@ -85,6 +92,8 @@ Note Desktop/Documents are usually iCloud-synced, and some folders (e.g. `~/Desk
 1. **Security / malware** — SIP, Gatekeeper, XProtect version; LaunchAgents/Daemons (flags non-standard vendors); config profiles; third-party kernel/system extensions; known adware paths; browser extensions. `audit malware` goes deeper: it **cryptographically verifies** (`codesign --verify --strict`) every persistence binary — catching tampered/orphaned/missing targets a presence check misses — plus `/etc/hosts`, cron, login items, DYLD injection, non-loopback network listeners, and recently-dropped executables. **Known-benign noise to NOT alarm the user about:** Homebrew binaries and open-source DBs (Firebird, Postgres) are legitimately unsigned; Adobe bundles fail `--strict` on symlinks; Karabiner trips on xattr detritus; a plist pointing to a *missing* binary is almost always an uninstalled app's leftover, not malware. It's still a *persistence + integrity* review, not a threat-DB scan — for definitive certainty point the user to Objective-See KnockKnock or Malwarebytes.
 2. **Questionable system data** — iOS backups, Xcode DerivedData/DeviceSupport/Archives, simulators, Docker, Containers/Group Containers, local snapshots split into Time Machine (thin with `sudo tmutil thinlocalsnapshots / 999999999999 4`) and `com.apple.os.update` ones (macOS manages them; thinning won't remove them), leftover installers. Sizes only; user chooses.
 3. **Large files > 500 MB** (`LARGE_MB=1000 ... audit largefiles` to raise the bar) — real local files (already-evicted iCloud files are skipped), flagged as offload candidates.
+
+Note: `code_sign_clone` folders of com.apple.* apps and Chrome under `/private/var/folders` show huge `du` sizes (373 GB on a 245 GB disk, 2026-11-22) but they are APFS clones sharing blocks with the apps, so they are not a space finding. Never report or remove them.
 
 Note: `com.apple.MobileSMS` container + `~/Library/Messages` are Messages storage — they shrink via the Messages app's own "Keep Messages" setting, not this tool.
 
@@ -107,6 +116,7 @@ Rules: list what you find first, then remove only what the user approves. Never 
 
 **Diagnose the cause before quitting anything — quitting apps is usually NOT the real fix:**
 - **Uptime + swap is the #1 lever.** Many days of uptime with GBs of swap used and a full memory compressor means RAM has been churning to disk for weeks. **A restart clears all swap and the compressor instantly** — a far bigger win than quitting any single app. The report prints a RESTART RECOMMENDED banner when uptime ≥ 7 days, or swap ≥ 2 GB after at least 1 day up. Heavy swap within a day of a restart comes from what is running now, so the report says a restart will not help: close heavy apps or let running jobs finish.
+- **Name the swap holder before advising a restart.** At 2 GB+ swap the report names the biggest memory holder from `top -o mem` (ps RSS hides compressed memory: on 2026-11-22 an orphaned next-server showed RSS 49 MB with a 23 GB footprint and held nearly all 20 GB of swap at 1 day uptime). It says whether the holder is an ORPHAN (its parent chain reaches launchd with no app or terminal above it) and puts STOP FIRST ahead of the restart advice: stop that process, then restart only if swap stays high.
 - **Dual heavy apps.** Illustrator + Photoshop open at once (plus Adobe's login-launched background services) is a legitimate multi-GB load. That's expected, not a leak.
 
 **Resetting stuck Apple helpers (`processes reset`) — run this every cleanup:**

@@ -21,6 +21,8 @@
 #   trevskills-mac-cleanup.sh processes quit [--apply]  # quit safe background helpers only
 #   trevskills-mac-cleanup.sh processes reset [--apply] # reset stuck Apple helpers (auto-relaunch)
 #   trevskills-mac-cleanup.sh report [baseline_free_kb] # GB freed + memory + maintenance plan
+#   trevskills-mac-cleanup.sh worktrees [--apply]  # remove scrum worktrees of done/aborted jobs
+#   trevskills-mac-cleanup.sh transcripts [--apply] # gzip-archive Claude transcripts untouched 30+ days
 #
 # Categories: app-caches dev-caches adobe-caches messages-cache logs system-caches
 # "safe set" (default) = app-caches dev-caches adobe-caches messages-cache logs
@@ -496,8 +498,44 @@ proc_reset() {
   fi
 }
 
+# Biggest memory holder, called by mem_summary when swap is 2 GB or more.
+# `top -o mem` counts compressed + swapped pages; ps RSS hides them (2026-11-22:
+# an orphaned next-server showed RSS 49 MB while holding a 23 GB footprint).
+# Walks the parent chain up to launchd: an orphan is a process whose topmost
+# ancestor is no app bundle and no system binary, so nothing on screen owns it.
+# Sets MEM_HOG to "<name> (pid N, <mem>, orphan|started under <app>)".
+MEM_HOG=""
+mem_hog() {
+  local pid mem name ppid comm cur top_comm="" depth=0 owner
+  read -r pid mem < <(top -l 1 -o mem -n 1 -stats pid,mem 2>/dev/null | \
+    awk 'f && NF {print $1, $NF; exit} $1=="PID" {f=1}')
+  [[ "${pid:-}" =~ ^[0-9]+$ ]] || return 0
+  mem="${mem%[+-]}"
+  read -r ppid name < <(ps -o ppid=,comm= -p "$pid" 2>/dev/null)
+  [[ -n "${name:-}" ]] || return 0
+  name="${name##*/}"; cur="$pid"
+  while [[ "$depth" -lt 30 ]]; do
+    read -r ppid comm < <(ps -o ppid=,comm= -p "$cur" 2>/dev/null)
+    [[ -n "${comm:-}" ]] || break
+    top_comm="$comm"
+    [[ "${ppid:-1}" =~ ^[0-9]+$ ]] && [[ "$ppid" -gt 1 ]] || break
+    cur="$ppid"; depth=$((depth + 1))
+  done
+  printf '  Biggest memory holder: %s (pid %s) at %s (top MEM; ps RSS hides compressed memory).\n' "$name" "$pid" "$mem"
+  if [[ "$top_comm" == *.app/* ]] || [[ "$top_comm" =~ ^/(System|usr|sbin|Library/Apple)/ ]]; then
+    owner="${top_comm##*/}"
+    printf '  Started under %s: quit it there, or kill %s.\n' "$owner" "$pid"
+    MEM_HOG="$name (pid $pid, $mem, started under $owner)"
+  else
+    echo "  It is an ORPHAN: its parent chain ends at launchd with no app or terminal above it,"
+    echo "  so nothing will ever stop it."
+    MEM_HOG="$name (pid $pid, $mem, orphan)"
+  fi
+  printf '  >>> STOP IT FIRST: kill %s, then check swap again before restarting.\n' "$pid"
+}
+
 # Shared memory/uptime summary — used by `processes` and the run `report`.
-# Sets globals MEM_UP_DAYS / MEM_SWAP_MB / MEM_RESTART so callers can reuse the numbers.
+# Sets globals MEM_UP_DAYS / MEM_SWAP_MB / MEM_RESTART / MEM_HOG so callers can reuse the numbers.
 MEM_UP_DAYS=0; MEM_SWAP_MB=0
 mem_summary() {
   local comp_mb wired_mb swap_int
@@ -508,7 +546,8 @@ mem_summary() {
   wired_mb=$(vm_stat | awk '/Pages wired down/{gsub(/[^0-9]/,"",$NF); printf "%d", $NF*16384/1048576}')
   printf '  Uptime: %s day(s)   Swap used: %s MB   Compressed RAM: %s MB   Wired: %s MB\n' \
     "$MEM_UP_DAYS" "${MEM_SWAP_MB:-?}" "${comp_mb:-?}" "${wired_mb:-?}"
-  swap_int=$(printf '%.0f' "${MEM_SWAP_MB:-0}"); MEM_RESTART=0
+  swap_int=$(printf '%.0f' "${MEM_SWAP_MB:-0}"); MEM_RESTART=0; MEM_HOG=""
+  [[ "$swap_int" -ge 2048 ]] && mem_hog
   if [[ "$MEM_UP_DAYS" -ge 7 ]] || { [[ "$swap_int" -ge 2048 ]] && [[ "$MEM_UP_DAYS" -ge 1 ]]; }; then
     MEM_RESTART=1
     echo "  >>> RESTART RECOMMENDED — high uptime and/or heavy swap. A reboot clears"
@@ -661,6 +700,7 @@ do_report() {
   echo "== Your maintenance plan =="
   printf '  • Run this cleanup: %s\n' "$rec_freq"
   printf '    %s\n' "$rec_note"
+  [[ -n "$MEM_HOG" ]] && printf '  • STOP FIRST: %s. It holds the swap; restart only if swap stays high after.\n' "$MEM_HOG"
   if [[ "$MEM_RESTART" -eq 1 ]]; then
     printf '  • RESTART NOW-ISH: %s days uptime, %s MB swap. Reboot weekly — it clears swap + the memory compressor, the biggest speed win.\n' "$MEM_UP_DAYS" "$MEM_SWAP_MB"
   else
@@ -673,6 +713,158 @@ do_report() {
   # Persist current state for next run.
   mkdir -p "$STATE_DIR"; printf '%s|%s\n' "$now" "$cur" > "$STATE_FILE"
   echo "(Baseline saved. Re-run 'report' anytime for an updated picture.)"
+}
+
+# --- worktrees: stale scrum worktree sweep ----------------------------------
+# Reads the scrum registry (same file board.projects() reads) and lists
+# <repo>/.claude/worktrees/scrum-<id> and scrum-<id>-base for jobs whose
+# board stage is done or aborted. --apply runs `git worktree remove --force` and `git branch -d`
+# (never -D, so an unmerged branch is kept). Anything unreadable is skipped
+# with a note, never treated as stale.
+stale_worktrees() {
+  local apply=0; [[ "${1:-}" == "--apply" ]] && apply=1
+  python3 - "$apply" <<'PY'
+import json, os, subprocess, sys
+apply = sys.argv[1] == "1"
+print(">>> APPLY — removing stale scrum worktrees" if apply else ">>> DRY RUN — nothing will be removed (add --apply)")
+reg = os.environ.get("SCRUM_REGISTRY") or os.path.expanduser("~/.claude/trevskills-scrum/projects.json")
+try:
+    with open(reg) as f:
+        repos = json.load(f)
+    if not isinstance(repos, list):
+        raise ValueError("not a JSON list")
+except (OSError, ValueError) as e:
+    print(f"   note: scrum registry {reg} unreadable ({e}); skipped")
+    sys.exit(0)
+total_kb = n = 0
+for repo in repos:
+    if not isinstance(repo, str) or not os.path.isdir(os.path.join(repo, "scrum")):
+        continue
+    wt_root = os.path.join(repo, ".claude", "worktrees")
+    if not os.path.isdir(wt_root):
+        print(f"   note: {repo} has no .claude/worktrees; skipped")
+        continue
+    board = os.path.join(repo, "scrum", "board.json")
+    try:
+        with open(board) as f:
+            jobs = json.load(f)["jobs"]
+        if not isinstance(jobs, list):
+            raise ValueError("jobs is not a list")
+    except (OSError, ValueError, KeyError, TypeError) as e:
+        print(f"   note: {board} unreadable or malformed ({e}); skipped")
+        continue
+    for job in jobs:
+        if not isinstance(job, dict) or job.get("stage") not in ("done", "aborted"):
+            continue
+        jid = job.get("id")
+        # The id becomes a path part and a branch name: refuse anything odd.
+        if not isinstance(jid, str) or not jid or "/" in jid or jid.startswith((".", "-")):
+            continue
+        # Scrum also creates a scrum-<id>-base worktree beside the job one. Both
+        # paths come from the id, never the row's worktree field (null on some
+        # aborted jobs). Only the job worktree has a branch to delete.
+        for name, branch in (("scrum-" + jid, "scrum/" + jid), ("scrum-" + jid + "-base", None)):
+            path = os.path.join(wt_root, name)
+            if os.path.islink(path) or not os.path.isdir(path):
+                continue
+            du = subprocess.run(["du", "-sk", path], capture_output=True, text=True).stdout.split()
+            kb = int(du[0]) if du and du[0].isdigit() else 0
+            size = subprocess.run(["du", "-sh", path], capture_output=True, text=True).stdout.split()
+            size = size[0] if size else "?"
+            total_kb += kb; n += 1
+            line = f"   {size:>6}  {repo}  {name}  [{job['stage']}]"
+            if not apply:
+                print("   would remove" + line[2:])
+                continue
+            r = subprocess.run(["git", "-C", repo, "worktree", "remove", "--force", path], capture_output=True, text=True)
+            if r.returncode != 0:
+                print(f"   FAILED remove{line[2:]}: {(r.stderr.strip() or 'git refused').splitlines()[0]}")
+                continue
+            if branch is None:
+                print(f"   removed{line[2:]}")
+                continue
+            b = subprocess.run(["git", "-C", repo, "branch", "-d", branch], capture_output=True, text=True)
+            if b.returncode == 0:
+                print(f"   removed{line[2:]}; branch {branch} deleted")
+            else:
+                print(f"   removed{line[2:]}; branch {branch} kept as unmerged ({(b.stderr.strip() or 'git refused').splitlines()[0]})")
+print(f"\n   {n} stale worktree(s), ~{total_kb / 1024:.1f} MB total")
+PY
+}
+
+# --- transcripts: gzip-archive old Claude transcripts -------------------------
+# Lists *.jsonl under ~/.claude/projects/<project>/ (recursing, skipping any
+# memory/ folder) with mtime 30+ days old. --apply gzips each into
+# ~/.claude/transcript-archive/<project>/<rel>.gz, verifies the archive
+# decompresses byte for byte to the original, and only then removes the
+# original. Never deletes a transcript without a verified archive.
+archive_transcripts() {
+  local apply=0; [[ "${1:-}" == "--apply" ]] && apply=1
+  python3 - "$apply" <<'PY'
+import gzip, os, shutil, sys, tempfile, time
+apply = sys.argv[1] == "1"
+src = os.path.expanduser("~/.claude/projects")
+dst = os.path.expanduser("~/.claude/transcript-archive")
+cutoff = time.time() - 86400 * 30
+def human(b):
+    for u in ("B", "K", "M", "G"):
+        if b < 1024 or u == "G":
+            return f"{b:.1f}{u}"
+        b /= 1024
+def same(gz_path, orig):
+    with gzip.open(gz_path, "rb") as a, open(orig, "rb") as b:
+        while True:
+            x, y = a.read(1 << 20), b.read(1 << 20)
+            if x != y:
+                return False
+            if not x:
+                return True
+print(">>> APPLY — archiving to " + dst if apply else ">>> DRY RUN — nothing will change (add --apply)")
+found = []
+projects = sorted(os.listdir(src)) if os.path.isdir(src) else []
+for proj in projects:
+    root = os.path.join(src, proj)
+    if not os.path.isdir(root) or os.path.islink(root):
+        continue
+    for d, dirs, files in os.walk(root):
+        dirs[:] = sorted(x for x in dirs if x != "memory")
+        for name in sorted(files):
+            p = os.path.join(d, name)
+            if not name.endswith(".jsonl") or os.path.islink(p) or not os.path.isfile(p):
+                continue
+            st = os.stat(p)
+            if st.st_mtime <= cutoff:
+                found.append((proj, os.path.relpath(p, root), p, st.st_size))
+before = after = n = 0
+for proj, rel, p, size in found:
+    if not apply:
+        print(f"   {human(size):>8}  {p}")
+        before += size; n += 1
+        continue
+    final = os.path.join(dst, proj, rel + ".gz")
+    tmp = None
+    try:
+        os.makedirs(os.path.dirname(final), exist_ok=True)
+        fd, tmp = tempfile.mkstemp(dir=os.path.dirname(final), prefix=".", suffix=".gz.tmp")
+        with os.fdopen(fd, "wb") as raw, gzip.GzipFile(fileobj=raw, mode="wb") as gz, open(p, "rb") as f:
+            shutil.copyfileobj(f, gz)
+        if not same(tmp, p):
+            raise ValueError("verify mismatch")
+        os.replace(tmp, final); tmp = None
+        os.remove(p)
+        gsize = os.path.getsize(final)
+        before += size; after += gsize; n += 1
+        print(f"   archived {human(size):>8} -> {human(gsize):>8}  {p}")
+    except (OSError, ValueError, EOFError) as e:
+        print(f"   KEPT (not archived: {e})  {p}")
+    finally:
+        if tmp and os.path.exists(tmp):
+            os.remove(tmp)
+if apply:
+    print(f"\n   {n} archived, {before} bytes before, {after} bytes after")
+else:
+    print(f"\n   {n} file(s), ~{human(before)} total")
+PY
 }
 
 # --- dispatch --------------------------------------------------------------
@@ -704,6 +896,8 @@ case "$cmd" in
     echo "Local snapshots after:  $(tmutil listlocalsnapshots / 2>/dev/null | grep -c com.apple)" ;;
   audit) exec "$(dirname "$0")/deep-audit.sh" "$@" ;;
   report) do_report "$@" ;;
+  worktrees)   stale_worktrees "$@" ;;
+  transcripts) archive_transcripts "$@" ;;
   processes|proc)
     sub="${1:-report}"; shift || true
     case "$sub" in
@@ -713,5 +907,5 @@ case "$cmd" in
       ollama) ollama_unload "$@" ;;
       *) echo "processes: use 'report' (read-only), 'quit [--apply]', 'reset [--apply|--self-check]', or 'ollama [--apply]'"; exit 1 ;;
     esac ;;
-  *) echo "Unknown command: $cmd"; echo "Use: scan | clean | assets | junk | offload | archive | snapshots | audit | processes | report"; exit 1 ;;
+  *) echo "Unknown command: $cmd"; echo "Use: scan | clean | assets | junk | offload | archive | snapshots | audit | processes | report | worktrees | transcripts"; exit 1 ;;
 esac
