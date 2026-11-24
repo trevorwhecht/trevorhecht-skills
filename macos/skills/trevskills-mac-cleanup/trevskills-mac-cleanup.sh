@@ -700,7 +700,7 @@ do_report() {
   echo "== Your maintenance plan =="
   printf '  • Run this cleanup: %s\n' "$rec_freq"
   printf '    %s\n' "$rec_note"
-  [[ -n "$MEM_HOG" ]] && printf '  • STOP FIRST: %s. It holds the swap; restart only if swap stays high after.\n' "$MEM_HOG"
+  [[ -n "$MEM_HOG" ]] && printf '  • STOP FIRST: %s. It likely holds the swap; restart only if swap stays high after.\n' "$MEM_HOG"
   if [[ "$MEM_RESTART" -eq 1 ]]; then
     printf '  • RESTART NOW-ISH: %s days uptime, %s MB swap. Reboot weekly — it clears swap + the memory compressor, the biggest speed win.\n' "$MEM_UP_DAYS" "$MEM_SWAP_MB"
   else
