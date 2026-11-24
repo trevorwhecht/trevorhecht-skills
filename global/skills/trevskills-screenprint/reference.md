@@ -214,7 +214,7 @@ Anatol survey of ink makers (quartz flash) [9]:
   intensity 4; WB/silicone 3.5–4 s at intensity 4 [9].
 - Pallet preheat 120°F–160°F [9].
 - Pallet heat (Trevor, 2026-11-17): long flashes heat the pallets (boards). Top colors on a hot pallet dry in
-  the screen and print grainy, worse later in the run. Target pallets about 130°F, no hotter. On poly, shorten
+  the screen and print grainy, worse later in the run. Target pallets about 130°F, never over 140°F (Trevor, 2026-11-23: "pallet temp i aim for 130 no more than 140a and drtyer time 1:30-2 min"). On poly, shorten
   the flash time and turn the conveyor dryer temp down a little (sometimes runs the 130°F for the flash, works
   great). On a manual, flashing every rotation makes pallets piping hot and overheats the ink: it feels like
   plastic or a cheap heat transfer, and overheated water-based ink feels like a sticker.
@@ -688,13 +688,16 @@ Evaluate each press for a job; reject on hard constraints, then rank by estimate
   **Brown AP-67J** ("AP67jr") automatic, 6 heads / 7 pallets. The AP-67J's flash is built in. On the auto a flash takes a head: 6 colours only wet-on-wet, 5 with a flash.
 - Presses index to the right by default (some newer ones go either way).
 - The Brown ElectraPrint manual is the claude.ai skill `trevskills-brown-electraprint`.
-- Dryers: manual → BBC forced-air 8 ft ("Black Body"), cures waterbased (1:30–2:00 dwell) and plastisol.
-  Auto → BBC Little Buddy, plastisol only for now. BBC Aeolus planned.
+- Dryers: manual → BBC forced-air 8 ft ("Black Body"), cures waterbased (1:30–2:00 dwell, confirmed by Trevor 2026-11-23: "pallet temp i aim for 130 no more than 140a and drtyer time 1:30-2 min") and plastisol.
+  Auto → BBC Little Buddy, plastisol only for now. BBC Aeolus planned. The auto has not run yet (Trevor, 2026-11-23:
+  "i havnt used the auto yet but we will start with plastisol only untiul i upgrade my dryer."): it starts plastisol only until
+  the dryer is upgraded, so the AP-67J water-based sequences below are plans, and order 546 did not run on it.
 - Water based on the Little Buddy was too slow: he had to blow a fan into the dryer and run each shirt through 2 to 3
   times on the slowest speed, too slow for large orders. He then bought a forced air conveyor dryer twice the size
   with twice the power draw and installed 50 amp power in the shop for it. He did not raise prices. (Trevor, 2026-11-19)
 - Water based in the screen: a light mister bottle of distilled water plus 1% retarder, move very quick, and keep the
-  boards (pallets) at or under 140 to 150°F, or the ink dries in the screen. (Trevor, 2026-11-19)
+  boards (pallets) at about 130°F and never over 140°F, or the ink dries in the screen. (Trevor, 2026-11-19; the
+  old 140 to 150°F was replaced on 2026-11-23 by aim 130°F, never over 140°F: "pallet temp i aim for 130 no more than 140a and drtyer time 1:30-2 min")
 - Plastisol is used only occasionally, mainly for specialty ink (puff, glow, shimmer). Water based is the default.
   (Trevor, 2026-11-19)
 - Cleanup: water based needs no chemicals. Plastisol needs press wash sprayed and a lot of scrubbing, with gloves and a
@@ -741,13 +744,14 @@ Ink mixing structure (Trevor, 2026-10-27):
 
 Press setup and separations (Trevor, 2026-10-25):
 - **Wet on wet**: on the auto, colours print wet on wet from the **smallest area first** up to the largest
-  (tiny black detail first). Any ink can do it; thin ink (LSA) is easiest. Add **at least one choke** so wet
+  (tiny black detail first, but see the black order in the ink facts below, 2026-11-23). Any ink can do it; thin ink (LSA) is easiest. Add **at least one choke** so wet
   colours never meet, and ideally the other colours don't touch.
 - **Inner-only offset** for LSA black: about 0.006–0.01 in (by line thinness), offset inward only, then
   pathfinder; never outward. A choke is a negative offset.
 - **Sequence 1, LSA black and white** (AP-67J, water-based, dark shirt): H1 LSA black, inner offset only;
   H2 white UB, 200–230 mesh, choked at least 0.008 in away from the black (planned 230 mesh, 0.012 in; Trevor's 0.01–0.016 in range of 2026-10-25 may have been off), wet on wet; H3 flash; H4 cool-down; H5 highlight white,
   160 mesh, no choke or offset.
+- **White HSA plus a dark LSA colour** (Trevor, 2026-11-23): "choke would apply to auto and manual, order just gets shifted around, if it white hsa + dark color ink that we want to do lsa with (ink owuld have to be opaque on shirt so couldnt be lighter than shirt colors) Id do lsa with offset then hsa on top." So the same choke applies on auto and manual and only the order differs; LSA is opaque only when it is not lighter than the shirt; print the LSA with offset first, then the HSA on top. Still open: for white HSA plus a coloured HSA, which layer is choked.
 - **Sequence 2, white plus a colour** (AP-67J, dark shirt): H1 white UB, 0.008–0.012 in choke; H2 flash;
   H3 cool-down; H4 the colour (if it has less area than the white); H5 highlight white, wet on wet.
 - The AP-67J flash can sit at **any station**. Printing head 1 twice by indexing all the way round (every
@@ -763,9 +767,9 @@ Press setup and separations (Trevor, 2026-10-25):
 - **Ink facts** (Trevor, 2026-11-03):
   - HSA is Matsui's water-based high-solid line, not OW Stretch. LSA is Matsui 301 RC. LSA and HSA are
     water-based only.
-  - Black in a design always prints as **LSA black** and goes first (it soaks in and stays soft and
-    breathable). The one exception is high-density black.
-  - Water-based stack on a dark shirt: LSA black, white underbase, second white, then the colours.
+  - Black in a design prints as **LSA black** (it soaks in and stays soft and breathable). Black order
+    (Trevor, 2026-11-23, replaces "always goes first"): "i wouldnt print white ink on white shirts and black only goes before HSA ink, if it is only lsa then black last." and "hsa last". So an all-LSA design prints black last; when HSA is in the design the LSA black goes before the HSA and HSA prints last, on a light shirt too. The high-density black exception of 2026-11-03 stays. Still open: which shirts count as light (no white ink on white shirts).
+  - Water-based stack on a dark shirt (2026-11-03): LSA black, white underbase, second white, then the colours. The 2026-11-23 order above (HSA last) applies; where the two meet is still open.
   - The water-based white is always **Magna white** (Trevor prefers how it feels; other shops use Matsui
     OW Stretch white).
   - Whether a print needs an underbase depends on how dark the garment is and on the ink type.
