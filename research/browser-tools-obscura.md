@@ -48,9 +48,11 @@ Re-derived with plain `curl` just before the runs, and they matched the spec-tim
 4. First quote author on `/js/page/2/`: Marilyn Monroe
 5. Logout link after login: yes
 
-## claude-in-chrome arm: not run
+## claude-in-chrome arm
 
-No browser passed the `chrome-here.sh` check on this machine. Chrome was running, but the extension was not connected to the headless session. Two trial runs with `--chrome` ended with `Browser extension is not connected` on both `tabs_context_mcp` and `tabs_create_mcp`, so no check page could be loaded. The arm appears once as `not run`, and the verdict compares Obscura with playwright-cli only. (A first trial without `--strict-mcp-config` also loaded every connected claude.ai connector, which spent the whole $2 cap on tool listings alone; the flags above avoid that.)
+First run 2026-11-23 failed: the extension was not connected to the headless session. Re-run 2026-11-24 once Chrome had the extension connected (`tabs_context_mcp` answered). Same task and flags as the other arms; the prompt began with `Start by calling mcp__claude-in-chrome__tabs_context_mcp with createIfEmpty true.` ahead of the task text, and the arm also allowed `Bash(grep:*)`. 3 runs, one after another, logs in `/tmp/scrum-109-runs/chrome-<n>.jsonl`. The runs were not interleaved with the other arms, which were measured the day before.
+
+A session hook blocked the first navigation until the run executed `~/.claude/scripts/chrome-here.sh`, a localhost-only check that the driven Chrome is on this Mac; every run did that and then passed. Task (c) was never done in any run: the model declined to type a password into the login form, so the Logout answer is missing (4 of 5 answers each time). The other four answers were right in all 3 runs.
 
 ## Verdict rule
 
@@ -68,7 +70,9 @@ Keep only when all of these hold: Obscura finished 3 of 3 with 5 of 5 answers ea
 | playwright-cli | 1 | yes | 5 of 5 | 128,955 | 1,119 | 0.133 | 50.8 | 36.4 | 6 | 4 |
 | playwright-cli | 2 | yes | 5 of 5 | 129,243 | 1,195 | 0.057 | 148.5 | 133.0 | 6 | 4 |
 | playwright-cli | 3 | yes | 5 of 5 | 129,911 | 1,252 | 0.058 | 79.9 | 65.6 | 6 | 4 |
-| claude-in-chrome | - | not run | - | - | - | - | - | - | - | - |
+| claude-in-chrome | 1 | yes | 4 of 5 | 225,247 | 2,393 | 0.083 | 47.0 | 8.7 | 14 | 13 |
+| claude-in-chrome | 2 | yes | 4 of 5 | 243,634 | 2,297 | 0.069 | 41.8 | 3.9 | 13 | 12 |
+| claude-in-chrome | 3 | yes | 4 of 5 | 249,846 | 2,566 | 0.074 | 44.9 | 6.1 | 15 | 14 |
 
 Obscura run 2 gave `1,000 Places to See Before You Die` at £26.08 as the cheapest book (the second-lowest price); its other four answers were right.
 
@@ -76,6 +80,9 @@ Obscura run 2 gave `1,000 Places to See Before You Die` at £26.08 as the cheape
 |---|---|---|---|---|---|---|
 | obscura | 111,365 (110,612-128,581) | 61.9 (27.8-105.6) | 0.040 (0.031-0.043) | 1,217 | 10 | 9 |
 | playwright-cli | 129,243 (128,955-129,911) | 79.9 (50.8-148.5) | 0.058 (0.057-0.133) | 1,195 | 6 | 4 |
+| claude-in-chrome | 243,634 (225,247-249,846) | 44.9 (41.8-47.0) | 0.074 (0.069-0.083) | 2,393 | 14 | 13 |
+
+For claude-in-chrome, "finished" means the run ended without error; it counts 4 of 5 answers because it skipped the login. It used about 1.9 times the tokens of playwright-cli and 2.2 times those of Obscura, but its median wall time (44.9 s) was the lowest of the three arms and its range was the tightest. It costs less than playwright-cli run 1 but more than the other two playwright-cli runs. Its tool calls (13) are Obscura-like, one per page.
 
 Reading the numbers against the rule: Obscura finished 3 of 3 but scored 5 of 5 only twice, so the first condition fails. On tokens its median is 13.8% below playwright-cli (needs 25%), and on time 22.5% below, with the ranges overlapping on duration. Its token range (110,612-128,581) just misses playwright-cli's (128,955-129,911), but the 25% bar is still not met.
 
@@ -83,10 +90,12 @@ Reading the numbers against the rule: Obscura finished 3 of 3 but scored 5 of 5 
 
 - 3 runs per arm, one task, one model (sonnet), one day, so the spread is wide: playwright-cli run 2 spent 133 s outside the API.
 - Obscura used about twice the tool calls and turns (a call per page), while playwright-cli did the work in 4 Bash calls. Both land near 110-130k tokens because each turn re-reads the cached context.
-- The claude-in-chrome arm has no data, so nothing here says how Obscura compares with the real Chrome.
+- The claude-in-chrome arm ran a day after the others and not interleaved with them, so its time and cost are less comparable; it also skipped task (c), so it did less work than the other arms. Its ~44 s wall time is not a clean win over playwright-cli's 80 s median (51-149 s range).
 - Not tested: the "sites detect it less" claim, `--stealth`, the optional `web_search` tool, local dev servers.
 - playwright-cli run 1 cost 0.133 against 0.057 for runs 2 and 3 with near-identical tokens; the cause was not investigated.
 
-Verdict: drop
+Verdict: drop (unchanged by the Chrome arm)
 
 Obscura is a close match for reading public web pages, and it started and served MCP with no trouble, but it was not more accurate or 25% cheaper or faster than playwright-cli, which is already installed and finished 5 of 5 every time. It fits web reading, the part of our use it handled, not local UI testing: its README says rendering "may differ from Chromium" on long-tail CSS, which matters when a reviewer judges layout, and private network addresses are blocked unless it starts with `--allow-private-network`, so a local dev server needs that flag.
+
+The Chrome arm does not change this: it did not finish all five answers (it refuses to enter the password in task c), and it costs far more tokens than either other arm, so playwright-cli stays the better current tool, with 3 of 3 runs at 5 of 5. Obscura's gap to it is unchanged.
