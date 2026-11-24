@@ -17,7 +17,7 @@ any published figure.
 |---|---|
 | Head budget (auto) | `screens + flashes + cooldowns ≤ heads` per revolution. Underbase is a screen. A flash takes a head on the shop's Brown AP-67J (6/7): 6 screens wet-on-wet only, 5 screens when one head flashes. UB screens count, so a dark 3-colour job is UB1 · flash · UB2 · 3 colours, with the cool-down only when a head is spare. The AP-67J flash can sit at any station. Wet-on-wet colours print from the smallest area up. The shop's two AP-67J sequences are in reference.md §10. Shuttle-flash autos (Workhorse, Lawson) print-flash-print at one station, so they need no flash head. |
 | Underbase | Auto: two UB screens (UB, flash, UB2) or a second revolution at ≈ half speed. Manual: one screen, print-flash-print on the same platen. The Kruzer has no built-in flash; a manual job that needs one is flashed with a flash that takes no head (Trevor, 2026-11-18). |
-| Dryer rate | `PPH = floor(beltWidth ÷ 14) × chamberLength × 3600 ÷ (dwell × 16)` (14 in garment on a 16 in pitch). Dwell ≈ 30 s plastisol, 75 s+ waterbased. Matches BBC's tables within ~4 %. Belt and chamber come from the shop's equipment record (seed catalog); a dryer with no dimensions and no entered rate has no computed rate. |
+| Dryer rate | `PPH = floor(beltWidth ÷ 14) × chamberLength × 3600 ÷ (dwell × 16)` (14 in garment on a 16 in pitch). Dwell ≈ 30 s plastisol, 75 s+ waterbased. Matches BBC's published tables within ~4 % only at 25 s plastisol and 45 s water based on 12x18 or 18x18 footprints (reference.md §5); these constants give 1 lane on a 24 in belt, so 360 PPH plastisol and 144 PPH water based on a 48 in chamber. Belt and chamber come from the shop's equipment record (seed catalog); a dryer with no dimensions and no entered rate has no computed rate. |
 | Dryer gates ink | A dryer with no waterbased rate cannot cure waterbased or discharge. One belt speed per dryer: mixed inks run at the slowest. |
 | Job rate | `min(press PPH, dryer PPH for that ink, crew rate)`. Shirts stack and wait when the dryer is the limit. |
 | Real auto speed | 250–420 PPH solo, 500–850 with loader + catcher, on runs over 100. Makers claim 1,000+. Colour count slows a manual, not an auto. |
@@ -36,7 +36,7 @@ any published figure.
 
 - Inventing a belt pitch or gap. Use the 14 in / 16 in constants above unless the shop gives others.
 - Taking a maker's shirts-per-hour as a default rate.
-- Letting a flash take a head on a manual press. In general a manual flash swings over a pallet and costs no head there; the Kruzer has no built-in flash, and a manual job that needs one is flashed with a flash that takes no head (Trevor, 2026-11-18).
+- Letting a flash take a head on a manual press. In general a manual flash swings over a pallet and costs no head there (the Kruzer case is in the Underbase row).
 - Counting the second UB hit as free on an auto. It is a second screen or a second revolution.
 - Suggesting a flash for discharge. The shop never flashes discharge.
 - Asking the shop a §10 question that is already answered.

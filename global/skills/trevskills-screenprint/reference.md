@@ -65,7 +65,7 @@ Conventions used throughout:
 | Who moves | Operator rotates heads/platens and makes every stroke, push or pull; Trevor pushes, has started pulling (Trevor, 2026-11-18) | Motor/air indexes; squeegees driven |
 | Heads | Typically 1–8 colors, 1–8 stations; often "all heads down" (colors = stations) [1] | Always more stations than colors [1] |
 | Heads at rest | Every head not printing rests up at an angle on springs, with its screen lifted; only the head in use is pulled down for a stroke (Trevor, 2026-11-18) | n/a |
-| Flash | Swing-over flash, operator times it (seconds); the Kruzer has no built-in flash; a manual job that needs one is flashed with a flash that takes no head (Trevor, 2026-11-18) | Flash occupies a head; timed per index |
+| Flash | Swing-over flash, operator times it (seconds); the Kruzer has no built-in flash (§10, Trevor, 2026-11-18) | Flash occupies a head; timed per index |
 | Consistency | Varies with operator fatigue | Same stroke every time → can use higher mesh, even deposits [11] |
 | Crew | 1 per press [2] | 2 typical at speed (loader + unloader/catcher) [2]; 3 recommended (load, unload, watcher) [12] |
 | Speed | 40–100 PPH [2] | 500–800 PPH sustainable [2] |
@@ -135,8 +135,8 @@ Formula: top_colors = C − 1 (UB) − flashes − cooldowns. Double-hit UB (two
 
 ### Underbase: one screen on a manual, two on an auto
 - Manual: print UB, swing flash over the same platen, print UB again with the SAME screen (PFP). The platen
-  never leaves the head, so one screen does both hits. The Kruzer has no built-in flash; a manual job
-  that needs one is flashed with a flash that takes no head (Trevor, 2026-11-18).
+  never leaves the head, so one screen does both hits. The Kruzer has no built-in flash (§10,
+  Trevor, 2026-11-18).
 - Auto: a pallet visits each head once per revolution. A second UB hit after the flash must come from a
   different head → a second, identical UB screen ("UB1, flash, UB2") — or a second revolution via a
   sequencing program (Revolver) at a speed penalty [7][8].
@@ -499,7 +499,7 @@ Evaluate each press for a job; reject on hard constraints, then rank by estimate
 1. **Head count**: `screens + flashes + cooldowns <= heads` (single revolution) — §2. Allow
    `revolutions = 2` only if the press supports sequencing (M&R Revolver etc.) and apply speed ÷ 2.
 2. **Flash availability**: dark garment / UB job needs a flash unit on (or available for) that press; count
-   flash units owned per press. The AP-67J's flash is built in; the manual has none built in, and a job that needs one uses a flash that takes no head (§10, Trevor, 2026-11-18).
+   flash units owned per press. The AP-67J's flash is built in; the manual has none built in (§10, Trevor, 2026-11-18).
 3. **Image size ≤ press max print area** (and screen frame fits). Examples: M&R Sportsman EX 4045 = 16"x18",
    5050 = 20"x20" (page overview also mentions 20"x28") [1]; ROQ YOU 16"x20" [2]; Brown ElectraPrint Jr
    20"x24" frames [3]; MHM Matrix 20x28 / 28x40 / 31x40 [4].
@@ -700,7 +700,7 @@ Evaluate each press for a job; reject on hard constraints, then rank by estimate
 - Cleanup: water based needs no chemicals. Plastisol needs press wash sprayed and a lot of scrubbing, with gloves and a
   high quality mask. (Trevor, 2026-11-19)
 - Underbase on the auto = two screens (UB on head 1, flash head 2, cool-down head 3 if available, colours
-  after). On the manual = one screen on the same platen (the Kruzer has no built-in flash; Trevor, 2026-11-18).
+  after). On the manual = one screen on the same platen (no built-in flash on the Kruzer, see above).
 - Manual rate ≈ 100 shirts per 4 hours on a dark-garment print-flash-print job (≈25 PPH); black ink with
   no flash is much faster.
   Auto rate unknown until measured; "500/hr" claims are a label, never a default.
@@ -718,7 +718,7 @@ Shop ink practice (Trevor, 2026-10-26):
   This shop never flashes discharge (formaldehyde, poor ventilation): never suggest flashing it.
 - Ink usage per run depends on mesh, stroke count (flood-print vs flood-print-flood-print uses more ink,
   possibly near double, unmeasured) and above all each screen's open area. Trevor will weigh containers
-  before and after runs to measure. No default usage figure exists.
+  before and after runs to measure. No measured usage figure exists yet. The app does use an estimate, INK_GRAMS_PER_SQ_IN_PER_STROKE by mesh (110: 0.06, 156: 0.045, 160: 0.044, 200: 0.036, 230: 0.03, 305: 0.02), from inkUsage.ts.
 - Trevor keeps jars of every mixed ink. An empty jar of a stock formula saves a new jar (~$1.50) and label.
 
 Ink mixing structure (Trevor, 2026-10-27):
@@ -731,12 +731,12 @@ Ink mixing structure (Trevor, 2026-10-27):
 - A custom ink of one line may only use that line's bases (an LSA custom never offers discharge or Stretch bases).
 - **Pantone library formulas are fixed data**: name, code, brand, recipe are never edited. Only jars get refilled.
   To change one, copy it into a new custom ink.
-- **HSA+** is Trevor's own name (OW Stretch or Magna AquaFlex, 70%+ white base, no underbase needed); other
+- **HSA+** is Trevor's own name (OW Stretch or Magna AquaFlex, defined above); other
   shops use the standard line names. **MSA** (Trevor's) = half OW Stretch base + half LSA base (Matsui sells it as
   "Easy Print" but publishes no formulas). Trevor uses only **Brite** discharge; other lines are opt-in per shop.
 - Formula catalogs: Matsui, Magna AquaFlex, Wilflex Epic Rio and Screen Print Direct publish mixing formulas;
   Permaset does not (brand flag `hasMixFormula`).
-- **Plastisol** (future): no pigment mixing. Each colour is ready to print (pigment + base already in it);
+- **Plastisol** (built for Screen Print Direct Rapid Cure): no pigment mixing. Each colour is ready to print (pigment + base already in it);
   a mix is colours mixed with colours.
 
 Press setup and separations (Trevor, 2026-10-25):
@@ -746,12 +746,12 @@ Press setup and separations (Trevor, 2026-10-25):
 - **Inner-only offset** for LSA black: about 0.006–0.01 in (by line thinness), offset inward only, then
   pathfinder; never outward. A choke is a negative offset.
 - **Sequence 1, LSA black and white** (AP-67J, water-based, dark shirt): H1 LSA black, inner offset only;
-  H2 white UB, 200–230 mesh, 0.01–0.016 in choke, wet on wet; H3 flash; H4 cool-down; H5 highlight white,
+  H2 white UB, 200–230 mesh, choked at least 0.008 in away from the black (planned 230 mesh, 0.012 in; Trevor's 0.01–0.016 in range of 2026-10-25 may have been off), wet on wet; H3 flash; H4 cool-down; H5 highlight white,
   160 mesh, no choke or offset.
 - **Sequence 2, white plus a colour** (AP-67J, dark shirt): H1 white UB, 0.008–0.012 in choke; H2 flash;
   H3 cool-down; H4 the colour (if it has less area than the white); H5 highlight white, wet on wet.
 - The AP-67J flash can sit at **any station**. Printing head 1 twice by indexing all the way round (every
-  station indexes) is possible but slow, so it is avoided. The press configuration is set before the film plan.
+  station indexes) is possible but slow, so it is avoided (Trevor, 2026-10-25). The press configuration is set before the film plan.
 - **Flashback / shuttle flash** (Workhorse, Lawson autos): print-flash-print at one station, so two flashed
   layers of white leave that head. Slower to run, much faster to set up.
 - **Manual**: flashing costs little, so always choke. White only: the same white screen does
@@ -779,8 +779,8 @@ Sources disagree or the answer is shop-specific. Ask; store answers as config, n
 **Equipment inventory**
 1. Manual max print area and frame size.
 2. ~~Does the AP-67J flash sit in a head (assumed yes) or in a flash port between heads?~~ Answered
-   (Trevor, 2026-10-25): the flash takes a head and can sit at any station.
-3. "Black Body 8 ft": BBC Forced Air FA-244 (forced air) or Big Buddy III (infrared)? Belt width and
+   (Trevor, 2026-10-25): the flash takes a head (its station is covered in §10, Sequences).
+3. "Black Body 8 ft": forced air is settled (he bought a forced air conveyor dryer, 2026-11-19; see the dryers note above); the exact model is still unknown (BBC Forced Air FA-244, or the catalog's Big Buddy III infrared, which looks wrong). Belt width and
    heated chamber length of each dryer if the catalog row is wrong.
 4. Compressor CFM / hp / tank; does it limit running the auto and a flash together?
 5. Platens owned: sleeve, pocket, youth, oversize, hoodie; which press each fits.
