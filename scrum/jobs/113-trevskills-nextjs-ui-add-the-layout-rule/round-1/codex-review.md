@@ -1,0 +1,1 @@
+The change adds scoped hero-layout guidance without modifying executable code. The new rules explicitly defer to dashboard, table, and form guidance, and no actionable defects were found.
