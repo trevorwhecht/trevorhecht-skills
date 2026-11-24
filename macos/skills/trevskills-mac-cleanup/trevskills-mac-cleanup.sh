@@ -506,7 +506,7 @@ proc_reset() {
 # Sets MEM_HOG to "<name> (pid N, <mem>, orphan|started under <app>)".
 MEM_HOG=""
 mem_hog() {
-  local pid mem name ppid comm cur top_comm="" depth=0 owner
+  local pid mem name ppid comm cur top_comm="" depth=0 owner live="" cwd etime secs
   read -r pid mem < <(top -l 1 -o mem -n 1 -stats pid,mem 2>/dev/null | \
     awk 'f && NF {print $1, $NF; exit} $1=="PID" {f=1}')
   [[ "${pid:-}" =~ ^[0-9]+$ ]] || return 0
@@ -518,10 +518,24 @@ mem_hog() {
     read -r ppid comm < <(ps -o ppid=,comm= -p "$cur" 2>/dev/null)
     [[ -n "${comm:-}" ]] || break
     top_comm="$comm"
+    [[ "${comm##*/}" == "claude" ]] && live="under claude"
     [[ "${ppid:-1}" =~ ^[0-9]+$ ]] && [[ "$ppid" -gt 1 ]] || break
     cur="$ppid"; depth=$((depth + 1))
   done
+  # Live work is never a stop target: a scrum worktree cwd, claude in the chain, or under 10 minutes old.
+  cwd=$(lsof -a -d cwd -p "$pid" -Fn 2>/dev/null | sed -n 's/^n//p' | head -1)
+  [[ "$cwd" == */.claude/worktrees/scrum-* ]] && live="scrum worktree"
+  etime=$(ps -o etime= -p "$pid" 2>/dev/null | tr -d ' ')
+  if [[ -z "$live" && "$etime" =~ ^(([0-9]+)-)?(([0-9]+):)?([0-9]+):([0-9]+)$ ]]; then
+    secs=$(( 10#${BASH_REMATCH[2]:-0} * 86400 + 10#${BASH_REMATCH[4]:-0} * 3600 \
+      + 10#${BASH_REMATCH[5]} * 60 + 10#${BASH_REMATCH[6]} ))
+    [[ "$secs" -lt 600 ]] && live="started ${secs}s ago"
+  fi
   printf '  Biggest memory holder: %s (pid %s) at %s (top MEM; ps RSS hides compressed memory).\n' "$name" "$pid" "$mem"
+  if [[ -n "$live" ]]; then
+    printf '  It is live work (%s): let it finish; not a stop target.\n' "$live"
+    return 0
+  fi
   if [[ "$top_comm" == *.app/* ]] || [[ "$top_comm" =~ ^/(System|usr|sbin|Library/Apple)/ ]]; then
     owner="${top_comm##*/}"
     printf '  Started under %s: quit it there, or kill %s.\n' "$owner" "$pid"
