@@ -697,7 +697,7 @@ Evaluate each press for a job; reject on hard constraints, then rank by estimate
   with twice the power draw and installed 50 amp power in the shop for it. He did not raise prices. (Trevor, 2026-11-19)
 - Water based in the screen: a light mister bottle of distilled water plus 1% retarder, move very quick, and keep the
   boards (pallets) at about 130°F and never over 140°F, or the ink dries in the screen. (Trevor, 2026-11-19; the
-  temperature was changed from 140 to 150°F on 2026-11-23: "pallet temp i aim for 130 no more than 140a and drtyer time 1:30-2 min")
+  old 140 to 150°F was replaced on 2026-11-23 by aim 130°F, never over 140°F: "pallet temp i aim for 130 no more than 140a and drtyer time 1:30-2 min")
 - Plastisol is used only occasionally, mainly for specialty ink (puff, glow, shimmer). Water based is the default.
   (Trevor, 2026-11-19)
 - Cleanup: water based needs no chemicals. Plastisol needs press wash sprayed and a lot of scrubbing, with gloves and a
