@@ -39,6 +39,19 @@ Trevor wants a **full report every single time this skill is used**. Workflow:
 
 The report persists free-space + timestamp to `~/.mac-cleanup/last-run`, so each run also shows change-since-last-run and derives the recommended cleanup frequency from the actual fill rate. Never skip the report — it is the point of running the skill for Trevor.
 
+## Shop Mac
+
+The shop Mac runs scrum jobs for the main Mac and holds almost no user files. The script detects it by the `machine-notes-shopmac` import in `~/.claude/CLAUDE.md`. There:
+
+- **Worktrees first.** serve.py's `prune_worktrees` and `reclaim_disk` run only on the main Mac, so finished worktrees pile up here at about 1 to 3 GB each: 360 of them held 395 of 466 GB on 2026-11-25, 8 days after setup. Run `worktrees` before anything else; the approval gate in step 2d stays. Both a full `du` and this dry-run can take over 10 minutes, so run them in the background.
+- **Look for another cleaner.** The main Mac may have started one over SSH (`~/scrum-work/.reclaim.sh`, 2026-11-25). If it runs, don't start a second, and check its list for jobs the board does not call done or aborted.
+- **Before the yes, check for work that exists only here**: `git status --porcelain` in each worktree, and `git branch -r --contains HEAD` for unpushed commits.
+- **Digest notes are safe.** They are in `<repo>/scrum/jobs/`, which is outside the worktrees and never touched here. The main Mac copies them home from `scrum-artifacts/<id>` and then deletes that branch.
+- **Keep the npm caches.** Plain `clean` leaves out `dev-caches`; naming it works only while no npm or npx runs.
+- **Chrome for Testing** (`~/.local/share/chrome-for-testing-*`) is not flagged as unsigned; it is `$SCRUM_CHROME`.
+- **Never stop scrum sessions** (`claude -p /trevskills-scrum ...`, buildlock, `next dev` in a worktree). A restart waits until none run and needs someone at the machine.
+- No Photoshop or Illustrator here, so a lone `Asset N` file is usually a download. `assets` still only moves it to the Trash.
+
 ## Safety model
 
 - **Cache purge** never touches `~/Documents`, `~/Desktop`, `~/Downloads`, `~/Developer`, `~/Pictures`, `~/Movies`, `.ssh`, `.gnupg`, Keychains, `~/Library/Messages` content, or any `*.photoslibrary`.

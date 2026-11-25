@@ -207,7 +207,8 @@ cands += [os.path.join(home, d) for d in os.listdir(home) if d.startswith(".") a
 rows = []
 for c in cands:
     if installed(os.path.basename(c)): continue
-    kb = int(subprocess.run(["du", "-sk", c], capture_output=True, text=True).stdout.split()[0] or 0)
+    du = subprocess.run(["du", "-sk", c], capture_output=True, text=True).stdout.split()  # empty when du can't read it
+    kb = int(du[0]) if du else 0
     if kb >= 100 * 1024: rows.append((kb, c))
 for kb, c in sorted(rows, reverse=True):
     print(f"  {kb/1048576:6.1f}G  {c}")
