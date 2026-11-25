@@ -97,6 +97,11 @@ run_cmd() { # for tool-native cleaners (npm/brew/pnpm)
   fi
 }
 
+# The shop Mac (scrum worker) is the one whose ~/.claude/CLAUDE.md imports its machine notes.
+is_shop_mac() { grep -q 'machine-notes-shopmac' "${HOME_DIR}/.claude/CLAUDE.md" 2>/dev/null; }
+# npm or npx in use (a job's install or dev server, a Playwright MCP run from ~/.npm/_npx).
+npm_busy() { pgrep -f '(^|/)(npm|npx) |/\.npm/_npx/' >/dev/null 2>&1; }
+
 cat_app_caches() {
   echo "== app-caches =="
   purge_dir "${HOME_DIR}/Library/Caches/com.spotify.client"
@@ -112,6 +117,9 @@ cat_app_caches() {
 
 cat_dev_caches() {
   echo "== dev-caches =="
+  if is_shop_mac && npm_busy; then
+    echo "   [SKIP] shop Mac: npm or npx is in use by a live job; try again when no job runs"; return 0
+  fi
   purge_dir "${HOME_DIR}/Library/Caches/node-gyp"
   purge_dir "${HOME_DIR}/Library/Caches/next-swc"
   purge_dir "${HOME_DIR}/Library/Caches/typescript"
@@ -181,7 +189,13 @@ do_scan() {
 do_clean() {
   local cats=()
   for a in "$@"; do [[ "$a" == "--apply" ]] && APPLY=1 || cats+=("$a"); done
-  [[ ${#cats[@]} -eq 0 ]] && cats=(app-caches dev-caches adobe-caches messages-cache logs)
+  if [[ ${#cats[@]} -eq 0 ]]; then
+    cats=(app-caches dev-caches adobe-caches messages-cache logs)
+    if is_shop_mac; then
+      cats=(app-caches adobe-caches messages-cache logs)
+      echo "   note: shop Mac keeps dev-caches (every scrum npm ci reuses them); name it to clean it"
+    fi
+  fi
   [[ "$APPLY" == "1" ]] && echo ">>> APPLY MODE — deleting" || echo ">>> DRY RUN — nothing will be deleted (add --apply)"
   echo "Categories: ${cats[*]}"; echo
   for c in "${cats[@]}"; do
@@ -598,6 +612,8 @@ proc_report() {
   local flagged=0 p sig
   while IFS= read -r p; do
     [[ -x "$p" ]] || continue
+    # Chrome for Testing ships without a Developer ID; it is the shop Mac's scripted Chrome ($SCRUM_CHROME).
+    is_shop_mac && [[ "$p" == "${HOME_DIR}/.local/share/chrome-for-testing-"* ]] && continue
     # Capture to a var first — piping into `grep -q` races with pipefail:
     # grep -q exits on match and SIGPIPEs codesign, making the pipeline report
     # failure even on a VALID signature. `case` on the captured text avoids that.
