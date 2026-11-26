@@ -96,5 +96,5 @@ Partial
 4. The video's skill could not be inspected (transcript only): it is handed out only to viewers who comment on the
    reel, and the 17-line transcript has no implementation detail, so its scale, platforms, email finder and sender
    are unverified claims.
-5. `trevskills-prospect` stays as it is for Maps prospecting into a project's leads page; adding own-words quotes
-   to its `post` mode is the follow-up.
+5. `trevskills-prospect` stays as it is for Maps prospecting into a project's leads page; own-words quotes
+   are now added to its `post` mode (job 118): verbatim, checked against the pasted text.
